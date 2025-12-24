@@ -116,10 +116,26 @@ app.include_router(api_router)
 
 if settings.ENABLE_MCP:
     from app.mcp.server import mcp
-    # 获取 FastMCP 的 streamable_http_app（在 lifespan 中已初始化 session_manager）
-    mcp_app = mcp.streamable_http_app()
-    # 挂载到根路径，因为 FastMCP 应用内部已定义完整路径（如 /mcp）
-    app.mount("/", mcp_app)
+    # # 获取 FastMCP 的 streamable_http_app（在 lifespan 中已初始化 session_manager）
+    # mcp_app = mcp.streamable_http_app()
+    # # 挂载到根路径，因为 FastMCP 应用内部已定义完整路径（如 /mcp）
+    # app.mount("/", mcp_app)
+    try:
+        # 获取 FastMCP 的 ASGI 应用
+        # 注意：不同版本的 FastMCP 可能方法名不同，这里做个兼容检查
+        if hasattr(mcp, "sse_app"):
+            mcp_asgi_app = mcp.sse_app()
+        else:
+            mcp_asgi_app = mcp.streamable_http_app()
+
+        # 关键：将 MCP 应用挂载到 settings.MCP_PATH (通常是 /mcp)
+        # 这样最终的 SSE 地址就是： http://localhost:5001/mcp/sse
+        app.mount(settings.MCP_PATH, mcp_asgi_app)
+        
+        logger.info(f"✅ MCP 服务已挂载到: {settings.MCP_PATH}/sse")
+        
+    except Exception as e:
+        logger.error(f"❌ MCP 路由挂载失败: {e}")
 
 if __name__ == "__main__":
     import uvicorn
