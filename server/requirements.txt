@@ -1,11 +1,11 @@
-fastapi
-fastmcp
-uvicorn
-torch
-matplotlib
-pandas
-polars
-chronos-forecasting
-anyio
-trio
-ollmcp
+fastapi == 0.119.1
+fastmcp == 2.13.3
+uvicorn == 0.38.0
+torch == 2.7.1
+matplotlib == 3.10.7
+pandas == 2.3.3
+polars == 1.35.1
+chronos-forecasting == 2.0.0
+anyio == 4.11.0
+trio == 0.32.0
+
