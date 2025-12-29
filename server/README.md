@@ -68,5 +68,7 @@ uvicorn app.main:app --host 0.0.0.0 --port 5001 --reload
 启动后访问
 - **sse支持**：http://localhost:5001/mcp/sse
 
-
+### 5.Docker
+- Dockerfile：打包代码，创建挂载目录，下载环境依赖，暴露端口5001.
+- docker-compose 一键编排创建容器，挂载模型权重的大文件目录，保证容器最小化。
 
