@@ -32,10 +32,10 @@
 
 #### API接口（api）
 - **`predict.py`**：（post：/）：封装Chronos模型预测服务接口。
-- **`health.py`**：（get：/）：健康检查接口，用于K8s的存活探针。
+- **`health.py`**：（get：/）：健康检查接口
 
 #### MCP服务（mcp）
-- **`prompts.py`**：内置chronos_forecast_guide[guide]，规范LLM的预测行为。
+- **`prompts.py`**：内置chronos_forecast_guide，规范LLM的预测行为。
 - **`resources.py`**：暴露chronos：//sample_request模版，指导LLM构造复杂JSON。
 - **`tools.py`**：注册chronos_forecast工具，LLM可以调用完成时间序列预测。
 
@@ -69,6 +69,6 @@ uvicorn app.main:app --host 0.0.0.0 --port 5001 --reload
 - **sse支持**：http://localhost:5001/mcp/sse
 
 ### 5.Docker
-- Dockerfile：打包代码，创建挂载目录，下载环境依赖，暴露端口5001.
-- docker-compose 一键编排创建容器，挂载模型权重的大文件目录，保证容器最小化。
+- Dockerfile：打包代码，创建挂载目录，下载环境依赖，暴露端口5001。
+- docker-compose 一键编排创建容器，挂载模型权重的大文件目录。
 
