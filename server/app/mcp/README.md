@@ -3,3 +3,5 @@
 - Tools：chronos_forecast(执行预测)
 - Resources:chronos://overview(服务说明),chronos://sample_request(输入模版)
 - Prompts:chronos_forecast_guide(使用指南)
+
+- SSH地址：http://localhost:5001/mcp/ssh
