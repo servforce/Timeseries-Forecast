@@ -3,7 +3,7 @@
 # app/core/config.py
 
 import os
-from dataclasses import dataclass
+from pathlib import Path
 
 
 
@@ -20,7 +20,7 @@ class Settings:
     ENV: str = os.getenv("ENVIRONMENT", "dev")
 
     # 是否开启调试模式（影响日志、异常返回等）
-    DEBUG: bool = False
+    DEBUG: bool = os.getenv("DEBUG", "false").lower() == "true"
 
     # 日志级别：debug / info / warning / error
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "info").upper()
@@ -42,23 +42,21 @@ class Settings:
 
 
     # ========= Chronos 模型路径配置 =========
-    # 注意：这里把“未微调”和“微调后”分开，并使用不同的环境变量名
-
-    # 本地未微调的 GPU 模型路径
-    unfinetuned_gpu_model_path: str = os.getenv(
-        "CHRONOS_GPU_MODEL_UNFINETUNED_PATH",
-        "./server/app/models/chronos_models/unfinetuned_cpu",
-    )
-    # 本地微调后的 GPU 模型路径
-    finetuned_gpu_model_path: str = os.getenv(
-        "CHRONOS_GPU_MODEL_FINETUNED_PATH",
-        "./server/app/models/chronos_models/finetuned_cpu",
+    # AutoGluon Chronos-2 本地权重路径（容器建议以 volume 挂载）
+    # - 设计文档默认：server/app/models/model_save/chronos_model
+    _server_dir: Path = Path(__file__).resolve().parents[2]
+    CHRONOS_MODEL_PATH: str = os.getenv(
+        "CHRONOS_MODEL_PATH",
+        str(_server_dir / "app" / "models" / "model_save" / "chronos_model"),
     )
 
-    # S3 上官方/兜底模型路径
-    chronos_s3_uri: str = os.getenv(
-        "CHRONOS_S3_URI",
-        "s3://autogluon/chronos-2/",
+    # AutoGluon Chronos 模型名（不同版本可能为 Chronos2 / Chronos）
+    AG_CHRONOS_MODEL_NAME: str = os.getenv("AG_CHRONOS_MODEL_NAME", "Chronos2")
+
+    # 微调后模型保存目录（predictor.save 目录）
+    FINETUNED_MODELS_DIR: str = os.getenv(
+        "FINETUNED_MODELS_DIR",
+        str(_server_dir / "app" / "models" / "model_save" / "finetuned_models"),
     )
 
     # ========= 预测默认参数配置 =========
@@ -74,6 +72,20 @@ class Settings:
     max_prediction_length: int = int(
         os.getenv("MAX_PREDICTION_LENGTH", "365")
     )
+
+    # ========= 输入限制（上传 Markdown） =========
+    MAX_UPLOAD_MB: int = int(os.getenv("MAX_UPLOAD_MB", "10"))
+    MAX_UPLOAD_BYTES: int = MAX_UPLOAD_MB * 1024 * 1024
+    MAX_SERIES: int = int(os.getenv("MAX_SERIES", "1000"))
+    MAX_POINTS_PER_SERIES: int = int(os.getenv("MAX_POINTS_PER_SERIES", "5000"))
+
+    # ========= 微调限制 =========
+    MAX_FINETUNE_STEPS: int = int(os.getenv("MAX_FINETUNE_STEPS", "5000"))
+
+    # ========= 模型上下文长度（AutoGluon Chronos2） =========
+    # 若用户未显式传入 context_length，服务端会根据最短序列长度做自适应：
+    #   context_length = min(DEFAULT_CONTEXT_LENGTH, min_series_length)
+    DEFAULT_CONTEXT_LENGTH: int = int(os.getenv("DEFAULT_CONTEXT_LENGTH", "512"))
 
     # ========= MCP / Agent 相关配置 =========
     # 是否启用 MCP 服务能力（将来可以用来开关 MCP）

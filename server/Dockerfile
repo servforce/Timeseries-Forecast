@@ -5,8 +5,8 @@ FROM python:3.12-slim
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
-    PYTHONPATH=/app/server  
-    # ^ 关键：把 server 目录加入 python 路径，否则 python 找不到 app 模块
+    PYTHONPATH=/app/server \
+    CHRONOS_MODEL_PATH=/app/server/app/models/model_save/chronos_model
 
 WORKDIR /app
 
@@ -20,7 +20,8 @@ RUN pip install --upgrade pip \
 COPY server /app/server
 
 # 4. 创建模型挂载点 (防止挂载出错)
-RUN mkdir -p /app/server/app/models/chronos_models
+RUN mkdir -p /app/server/app/models/model_save/chronos_model \
+    && mkdir -p /app/server/app/models/model_save/finetuned_models
 
 EXPOSE 5001
 

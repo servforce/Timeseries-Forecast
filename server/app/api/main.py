@@ -1,15 +1,16 @@
-'''
-API路由聚合
-'''
+"""
+API 路由聚合
+
+对外接口（与 CDD 对齐）：
+- POST /zeroshot
+- POST /finetune
+"""
 
 from fastapi import APIRouter
 
-from app.api.routes import predict
-from app.api.routes import finetuned
+from app.api.routes import finetune_forecast, zero_shot_forecast
 
 api_router = APIRouter()
 
-#注册各个路由模块
-
-api_router.include_router(predict.router,prefix="/predict")
-# api_router.include_router(finetuned.router,prefix='/finetuned')
+api_router.include_router(zero_shot_forecast.router, prefix="/zeroshot")
+api_router.include_router(finetune_forecast.router, prefix="/finetune")

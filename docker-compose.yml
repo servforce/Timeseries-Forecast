@@ -8,21 +8,24 @@ services:
     ports:
       - "5001:5001"           # 端口映射
     volumes:
-      # -------------------------------------------------------
-      # 核心挂载点：直接挂载父目录 chronos_models
-      # 这会自动包含您提到的两个路径：
-      #   1. server/app/models/chronos_models/finetuned
-      #   2. server/app/models/chronos_models/unfinetuned
-      # -------------------------------------------------------
-      - ./server/app/models/chronos_models:/app/server/app/models/chronos_models
+      # Chronos-2 权重（建议只读挂载）
+      - ./server/app/models/model_save/chronos_model:/app/server/app/models/model_save/chronos_model:ro
+      # 微调模型保存目录（可写）
+      - ./server/app/models/model_save/finetuned_models:/app/server/app/models/model_save/finetuned_models
       
 
     environment:
       - APP_NAME=Chronos_Forecast_Service
-      - ENVIRONMENT=prod
-      - LOG_LEVEL=info
-      # 容器内代码会自动去 /app/server/app/models/chronos_models 下找模型
-      # 无需额外设置路径环境变量，除非您的代码逻辑有变
+      - CHRONOS_MODEL_PATH=/app/server/app/models/model_save/chronos_model
+      # === 开发模式配置 (当前开启) ===
+      - ENVIRONMENT=dev
+      - DEBUG=true          # 开启热重载，代码改动即生效
+      - LOG_LEVEL=debug     #以此看到具体的预测数据流
+      
+      # === 生产模式配置 (上线时取消注释，注释掉上面的) ===
+      # - ENVIRONMENT=prod
+      # - DEBUG=false       # 关闭热重载，提升性能
+      # - LOG_LEVEL=info    # 只记录关键信息，避免日志文件过大
 
     restart: unless-stopped
     # 如果您需要使用 GPU 且已安装 nvidia-container-toolkit，请取消下方注释
@@ -33,3 +36,16 @@ services:
     #         - driver: nvidia
     #           count: 1
     #           capabilities: [gpu]
+
+  frontend:
+    container_name: chronos_forecast_frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_BASE_URL=http://localhost:5001
+    ports:
+      - "5173:80"
+    depends_on:
+      - chronos-service
+    restart: unless-stopped

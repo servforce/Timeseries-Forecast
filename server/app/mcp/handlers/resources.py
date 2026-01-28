@@ -20,9 +20,9 @@ def register_resources(mcp) -> None:
         return {
             "app_name": settings.APP_NAME,
             "description": (
-                "这是一个基于 Amazon Chronos-2 的时间序列预测服务的 MCP 接入层。\n"
-                "LLM 可以通过读取此资源了解工具用途、支持的特性、参数格式等。\n"
-                "主要工具为 chronos_forecast，用于多步多分位预测。"
+                "这是一个基于 Amazon Chronos-2（AutoGluon TimeSeries 接入）的时间序列预测服务 MCP。\n"
+                "建议以 Markdown（包含 ```json 代码块）作为输入，避免复制大 JSON 导致卡顿。\n"
+                "工具拆分为 zeroshot 与 finetune 两类。"
             ),
             "capabilities": [
                 "多 id 时间序列预测",
@@ -31,7 +31,7 @@ def register_resources(mcp) -> None:
                 "支持历史/未来协变量",
                 "可选择是否使用微调模型（use_finetuned）",
             ],
-            "recommended_tools": ["chronos_forecast"],
+            "recommended_tools": ["chronos_zeroshot_forecast", "chronos_finetune_forecast"],
             "use_cases": [
                 "按 SKU + 仓库预测未来 7 天销量",
                 "在给定价格/促销计划下估计未来需求",
@@ -42,43 +42,40 @@ def register_resources(mcp) -> None:
     # -------------------------------------------------------
     # 2. 示例输入模板
     # -------------------------------------------------------
-    @mcp.resource("chronos://sample_request")
-    async def chronos_sample_request() -> Dict[str, Any]:
+    @mcp.resource("chronos://sample_markdown")
+    async def chronos_sample_markdown() -> Dict[str, Any]:
         """
-        提供 chronos_forecast 的标准输入格式模板。
-        LLM 会读取此资源并自动补全/推断用户缺失字段。
+        提供标准 Markdown 输入模板（内含 JSON）。
         """
         return {
-            "description": "标准调用 chronos_forecast 的示例输入。",
-            "history_data": [
-                {
-                    "timestamp": "2022-09-24",
-                    "id": "item_1",
-                    "target": 10.0,
-                    "price": 1.20,
-                    "promo_flag": 0,
-                    "weekday": 6,
-                },
-                {
-                    "timestamp": "2022-09-25",
-                    "id": "item_1",
-                    "target": 11.0,
-                    "price": 1.22,
-                    "promo_flag": 0,
-                    "weekday": 0,
-                }
-            ],
-            "future_cov": [
-                {
-                    "timestamp": "2022-10-01",
-                    "id": "item_1",
-                    "price": 1.36,
-                    "promo_flag": 0,
-                    "weekday": 6,
-                }
-            ],
-            "prediction_length": 7,
-            "quantiles": [0.1, 0.5, 0.9],
-            "with_cov": True,
-            "use_finetuned": False
+            "description": "标准 Markdown 输入模版（包含 ```json 代码块）。",
+            "markdown": (
+                "# Chronos Forecast Input\n\n"
+                "```json\n"
+                "{\n"
+                "  \"freq\": \"D\",\n"
+                "  \"known_covariates_names\": [\"price\", \"promo_flag\", \"weekday\"],\n"
+                "  \"history_data\": [\n"
+                "    {\"timestamp\": \"2022-09-24\", \"item_id\": \"item_1\", \"target\": 10.0, \"price\": 1.20, \"promo_flag\": 0, \"weekday\": 6},\n"
+                "    {\"timestamp\": \"2022-09-25\", \"item_id\": \"item_1\", \"target\": 11.0, \"price\": 1.22, \"promo_flag\": 0, \"weekday\": 0}\n"
+                "  ],\n"
+                "  \"future_cov\": [\n"
+                "    {\"timestamp\": \"2022-10-01\", \"item_id\": \"item_1\", \"price\": 1.36, \"promo_flag\": 0, \"weekday\": 6},\n"
+                "    {\"timestamp\": \"2022-10-02\", \"item_id\": \"item_1\", \"price\": 1.37, \"promo_flag\": 0, \"weekday\": 0}\n"
+                "  ]\n"
+                "}\n"
+                "```\n"
+            ),
+        }
+
+    @mcp.resource("chronos://error_codes")
+    async def chronos_error_codes() -> Dict[str, Any]:
+        """
+        常见错误码与排障建议。
+        """
+        return {
+            "DATA_FORMAT_ERROR": "Markdown 中 JSON 不可解析：请使用 ```json 代码块包裹。",
+            "DATA_MISSING_COLUMNS": "缺少必要字段：history_data 至少要有 timestamp/item_id/target；future_cov 至少要有 timestamp/item_id。",
+            "FUTURE_COV_MISMATCH": "future_cov 每个 item_id 的行数必须等于 prediction_length。",
+            "MODEL_NOT_READY": "AutoGluon 未安装或模型不可用：请确认已安装依赖并配置 CHRONOS_MODEL_PATH。",
         }

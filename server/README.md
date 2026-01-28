@@ -14,7 +14,7 @@
 
 - **Python**: 3.12+
 - **Web 框架**: FastAPI
-- **ML 框架**: PyTorch, Chronos-Forecasting
+- **ML 框架**: AutoGluon TimeSeries（Chronos-2 接入）, PyTorch
 - **数据处理**: Pandas, Polars
 - **MCP**: FastMCP
 
@@ -25,23 +25,25 @@
 - **`exception_handle.py`**：FastAPI全局异常处理。
 
 ### 服务层（services）
-- **`load_model.py`**:实现lru_cache缓存策略，支持Base模型与Finetuned模型热切换。
-- **`predict_service.py`**:处理输入数据格式、协变量对齐、加载模型预测返回结果。
+- **`process.py`**:解析 Markdown（提取 ```json）、做输入校验与规模限制。
+- **`zero_shot_forecast.py`**:Zero-shot 预测（AutoGluon Chronos2）。
+- **`finetune_forecast.py`**:Fine-tune + 预测（AutoGluon Chronos2），可选保存 `model_id`。
 
 ### 接口层
 
 #### API接口（api）
-- **`predict.py`**：（post：/）：封装Chronos模型预测服务接口。
+- **`/zeroshot`**：Zero-shot 预测（上传 Markdown 文件）。
+- **`/finetune`**：微调 + 预测（上传 Markdown 文件）。
 - **`health.py`**：（get：/）：健康检查接口
 
 #### MCP服务（mcp）
-- **`prompts.py`**：内置chronos_forecast_guide，规范LLM的预测行为。
-- **`resources.py`**：暴露chronos：//sample_request模版，指导LLM构造复杂JSON。
-- **`tools.py`**：注册chronos_forecast工具，LLM可以调用完成时间序列预测。
+- **`prompt.py`**：内置 `chronos_zeroshot_guide` / `chronos_finetune_guide`。
+- **`resources.py`**：暴露 `chronos://sample_markdown` 输入模版。
+- **`tools.py`**：注册 `chronos_zeroshot_forecast` / `chronos_finetune_forecast` 工具。
 
 ### 模型层
-- **`predic_models.py`**:预测接口请求体和响应体格式。
-- chronos_models:带权重的Chronos模型存储。
+- `models/model_save/chronos_model`: Chronos-2 权重挂载目录（建议 volume 挂载）
+- `models/model_save/finetuned_models`: 微调模型保存目录（`model_id` 子目录）
 
 ## 🚀 快速开始
 
@@ -72,3 +74,6 @@ uvicorn app.main:app --host 0.0.0.0 --port 5001 --reload
 - Dockerfile：打包代码，创建挂载目录，下载环境依赖，暴露端口5001。
 - docker-compose 一键编排创建容器，挂载模型权重的大文件目录。
 
+## 🌐 Frontend（可选）
+- 前端代码：`frontend/`（Vite + React + Ant Design + ECharts）
+- 启动（本机）：`cd frontend && npm install && npm run dev`

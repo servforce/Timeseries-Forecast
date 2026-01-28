@@ -12,7 +12,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Any, Dict, Optional
 
-from fastapi import status
+from http import HTTPStatus
 
 
 class ErrorCode(str, Enum):
@@ -60,7 +60,7 @@ class BaseAppException(Exception):
         self,
         error_code: ErrorCode,
         message: str,
-        status_code: int = status.HTTP_400_BAD_REQUEST,
+        status_code: int = int(HTTPStatus.BAD_REQUEST),
         details: Optional[Dict[str, Any]] = None,
     ) -> None:
         """
@@ -103,7 +103,7 @@ class DataException(BaseAppException):
         self,
         error_code: ErrorCode,
         message: str,
-        status_code: int = status.HTTP_400_BAD_REQUEST,
+        status_code: int = int(HTTPStatus.BAD_REQUEST),
         details: Optional[Dict[str, Any]] = None,
     ) -> None:
         super().__init__(error_code, message, status_code, details)
@@ -117,7 +117,7 @@ class ModelException(BaseAppException):
         self,
         error_code: ErrorCode,
         message: str,
-        status_code: int = status.HTTP_500_INTERNAL_SERVER_ERROR,
+        status_code: int = int(HTTPStatus.INTERNAL_SERVER_ERROR),
         details: Optional[Dict[str, Any]] = None,
     ) -> None:
         super().__init__(error_code, message, status_code, details)

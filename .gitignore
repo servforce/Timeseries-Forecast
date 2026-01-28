@@ -18,11 +18,20 @@ venv/
 # OS
 ############################
 .DS_Store
+Thumbs.db
 
 ############################
 # Jupyter
 ############################
 .ipynb_checkpoints/
+
+############################
+# Python tooling/cache
+############################
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.cache/
 
 ############################
 # ⚠️ 模型文件（核心）
@@ -34,18 +43,26 @@ venv/
 *.bin
 *.onnx
 
-# 忽略目录下所有内容
-server/app/models/chronos_models/*
-!server/app/models/chronos_models/.gitkeep
+# 忽略目录下所有内容（权重/微调产物）
+server/app/models/model_save/**
+!server/app/models/model_save/.gitkeep
+!server/app/models/model_save/finetuned_models/.gitkeep
+
+# 旧目录（保留兼容/迁移期，可按需删除）
+server/app/models/chronos_models/**
 server/chronos-2-finetuned/
-!server/app/models/chronos_models/finetuned.gitkeep
-!server/app/models/chronos_models/unfinetuned.gitkeep
+server/AutogluonModels/
+**/autogluonout/
 
 ############################
 # Data
 ############################
 *.csv
 *.parquet
+*.pkl
+*.pickle
+*.npy
+*.npz
 
 ############################
 # Docker
@@ -58,3 +75,19 @@ server/chronos-2-finetuned/
 ############################
 .vscode/
 .idea/
+
+############################
+# Frontend (Vite/Node)
+############################
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.*
+
+############################
+# Backend env
+############################
+server/.env
+server/.env.*
+
+scripts/*.log

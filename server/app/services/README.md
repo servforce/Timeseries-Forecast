@@ -1,10 +1,14 @@
 # 业务逻辑的核心实现
 
-- **`load_model.py`**:
-  - 负责 Chronos 模型的加载（包括基础模型和微调后的模型）。
-  - **注意**: 包含模型路径管理和加载策略。
-  - 指在服务持续运行的情况下，基于请求参数动态选择并加载不同模型实例，并通过 LRU 缓存机制复用已加载模型，实现 Base 模型、微调模型之间的低延迟切换，而无需重启服务。
-- **`predict_services.py`**:
-  - 封装预测逻辑。
-  - 处理 DataFrame 转换、数据校验、调用 Pipeline 推理、格式化返回结果。
+- **`process.py`**：
+  - 解析用户上传的 Markdown（提取 ```json 代码块）
+  - JSON 结构校验、字段归一（`id`→`item_id`）、规模限制（序列数/点数/步长）
+  - 构造用于 AutoGluon 的标准化 DataFrame（历史与未来已知协变量）
+
+- **`zero_shot_forecast.py`**：
+  - 基于 AutoGluon TimeSeries 的 Chronos2 Zero-shot 预测实现
+
+- **`finetune_forecast.py`**：
+  - 基于 AutoGluon TimeSeries 的 Chronos2 Fine-tune + 预测实现
+  - 可选保存微调后的 predictor（返回 `model_id`）
   

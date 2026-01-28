@@ -50,6 +50,8 @@ async def lifespan(app:FastAPI):
             print("ReDoc: http://localhost:5001/redoc")
             print("OpenAPI: http://localhost:5001/openapi.json")
             print("Health: http://localhost:5001/health")
+            print("Zero-shot: http://localhost:5001/zeroshot/")
+            print("Finetune: http://localhost:5001/finetune/")
             print(f"MCP: http://localhost:5001{settings.MCP_PATH}")
             print("=" * 40)
             print("Press CTRL+C to stop the server")
@@ -70,6 +72,8 @@ async def lifespan(app:FastAPI):
         print("ReDoc: http://localhost:5001/redoc")
         print("OpenAPI: http://localhost:5001/openapi.json")
         print("Health: http://localhost:5001/health")
+        print("Zero-shot: http://localhost:5001/zeroshot/")
+        print("Finetune: http://localhost:5001/finetune/")
         print("=" * 40)
         print("Press CTRL+C to stop the server")
         print("=" * 40 + "\n")
@@ -103,7 +107,9 @@ register_exception_handlers(app)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.BACKEND_CORS_ORIGINS,
-    allow_credentials=True,
+    # 前端通过跨域调用（Vite:5173 -> FastAPI:5001）不需要 cookies，
+    # 且 allow_origins=["*"] 与 allow_credentials=True 在浏览器侧会触发 CORS 拒绝。
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -160,5 +166,3 @@ if __name__ == "__main__":
         import traceback
         traceback.print_exc()
         input("Press Enter to exit...")
-
-

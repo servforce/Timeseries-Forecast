@@ -16,7 +16,7 @@ def register_handlers():
     注册 MCP 处理器（工具、资源、提示）
     延迟导入避免循环依赖
     """
-    from app.mcp.handlers import tools, resources, prompts
+    from app.mcp.handlers import tools, resources, prompt
     
     # 注册工具处理器
     tools.register_tools(mcp)
@@ -25,7 +25,7 @@ def register_handlers():
     resources.register_resources(mcp)
     
     # 注册提示处理器
-    prompts.register_prompts(mcp)
+    prompt.register_prompts(mcp)
 
 
 # 注册处理器
