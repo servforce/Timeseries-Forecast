@@ -7,9 +7,11 @@
 - Query 参数：
   - `prediction_length`：预测步长（必填）
   - `quantiles`：分位数（默认 `[0.1,0.5,0.9]`，可重复传参）
+  - `metrics`：评估指标（默认 `WQL,WAPE`，可选 `IC/IR`）
   - `freq`：时间频率（如 `D/H/W/M`；不填则尝试推断）
   - `with_cov`：是否使用协变量（默认 `false`）
-  - `device`：`cuda/cpu`（默认 `cuda`）
+  - `context_length`：上下文长度（默认 512）
+  - `device`：`cuda/cpu`（默认 `cuda`，MCP 工具专用）
 
 ## Fine-tune + 预测（/finetune）
 - `POST /finetune/`
@@ -46,6 +48,10 @@ Markdown 中包含一个 `json` 代码块，结构示例：
   - 必须提供 `future_cov`
   - 推荐提供 `known_covariates_names`
   - `future_cov` 中每个 `item_id` 的行数必须等于 `prediction_length`
+
+指标说明：
+- WQL/WAPE：由 AutoGluon evaluate 输出
+- IC/IR：历史数据切分计算，需要至少 `2 * prediction_length` 的历史长度
 
 ## 健康检查（/health）
 - `GET /health`

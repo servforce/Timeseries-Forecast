@@ -55,11 +55,10 @@ export default function TutorialDrawer(props: { open: boolean; onClose: () => vo
 
         <Title level={5}>3. 评估指标（WQL / WAPE / IC / IR）</Title>
         <Paragraph>
-          服务端会使用 <Text code>predictor.evaluate(data, metrics=['WQL','WAPE'])</Text>{" "}
-          自动留出最后 <Text code>prediction_length</Text> 进行评估，并展示在页面。
+          目前支持四个指标的输出：WQL、WAPE、IC、IR
         </Paragraph>
         <Paragraph>
-          IC/IR 使用同样的留出区间进行计算：IC 为预测与真实的秩相关系数，IR 为 IC 的均值/标准差（越大越好）。
+          
         </Paragraph>
         <Paragraph>
         </Paragraph>

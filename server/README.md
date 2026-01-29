@@ -6,9 +6,16 @@
 
 - **基于 Chronos-2**: 利用预训练的大型时间序列模型，支持 Zero-shot (零样本) 预测、以及微调版本模型预测。
 - **多模态协变量支持**: 支持传入**历史协变量** (如过去的价格) 和**未来协变量** (如未来的促销计划)。
-- **多分位预测**: 支持配置预测分位数 (如 P10, P50, P90)，提供概率预测能力。提供0.01和0.99两个极端分位数预测，增加风险预测功能。
+- **多分位预测**: 支持配置预测分位数 (如 P10, P50, P90)，提供概率预测能力。
 - **MCP 集成**: 内置 MCP Server，支持 LLM 直接调用工具读取文档、进行预测分析。
 - **高性能架构**: 基于 FastAPI + Uvicorn，支持异步并发与线程池推理。
+-
+## 📌 指标与评估逻辑（当前实现）
+- **WQL/WAPE**：由 AutoGluon evaluate 输出
+- **IC/IR**：在历史数据中切分验证区间计算，需要至少 `2 * prediction_length` 的历史长度  
+  - 训练区间：前 `n - m`  
+  - 验证区间：最后 `m`  
+  - 预测输出仍为未来 `n+1..n+m`（不受指标切分影响）
 
 ## 🛠️ 技术栈
 
@@ -28,6 +35,7 @@
 - **`process.py`**:解析 Markdown（提取 ```json）、做输入校验与规模限制。
 - **`zero_shot_forecast.py`**:Zero-shot 预测（AutoGluon Chronos2）。
 - **`finetune_forecast.py`**:Fine-tune + 预测（AutoGluon Chronos2），可选保存 `model_id`。
+- **`metrics_helpers.py`/`custom_metrics.py`**：IC/IR 计算与对齐逻辑。
 
 ### 接口层
 
@@ -77,3 +85,8 @@ uvicorn app.main:app --host 0.0.0.0 --port 5001 --reload
 ## 🌐 Frontend（可选）
 - 前端代码：`frontend/`（Vite + React + Ant Design + ECharts）
 - 启动（本机）：`cd frontend && npm install && npm run dev`
+
+## 🔗 相关文档
+- API 说明：`server/app/api/README.md`
+- 服务层说明：`server/app/services/README.md`
+- MCP 说明：`server/app/mcp/README.md`
