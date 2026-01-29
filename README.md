@@ -1,6 +1,6 @@
-# Chronos Forecast（Chronos-2 + AutoGluon）
+# Timeseries Forecast（Chronos-2）
 
-Chronos Forecast 是一个基于 Amazon Chronos-2 的时间序列预测系统，提供：
+Timeseries Forecast 是一个基于 Amazon Chronos-2 的时间序列预测系统，提供：
 - Zero-shot / Finetune 预测
 - 多分位输出（P10/P50/P90 等）
 - 指标评估（WQL/WAPE/IC/IR）
