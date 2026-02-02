@@ -59,6 +59,14 @@ class Settings:
         str(_server_dir / "app" / "models" / "model_save" / "finetuned_models"),
     )
 
+    # 微调模型保留天数（到期自动清理）
+    FINETUNED_MODEL_RETENTION_DAYS: int = int(os.getenv("FINETUNED_MODEL_RETENTION_DAYS", "14"))
+
+    # 微调模型清理周期（小时）
+    FINETUNED_MODEL_CLEANUP_INTERVAL_HOURS: int = int(
+        os.getenv("FINETUNED_MODEL_CLEANUP_INTERVAL_HOURS", "24")
+    )
+
     # ========= 预测默认参数配置 =========
     # 默认分位数（如果请求里没传，可以用这个）
     default_quantiles: tuple[float, ...] = (0.1, 0.5, 0.9)

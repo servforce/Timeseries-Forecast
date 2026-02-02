@@ -8,10 +8,12 @@
 
 - **`zero_shot_forecast.py`**：
   - 基于 AutoGluon TimeSeries 的 Chronos2 Zero-shot 预测实现
+  - 使用临时目录进行训练/预测，避免落盘到默认 AutogluonModels
 
 - **`finetune_forecast.py`**：
   - 基于 AutoGluon TimeSeries 的 Chronos2 Fine-tune + 预测实现
-  - 可选保存微调后的 predictor（返回 `model_id`）
+  - 可选保存微调后的 predictor（返回 `model_id`），并支持加载复用
+  - 已保存模型默认保留 14 天，后台定时清理（可配置）
 
 - **`custom_metrics.py`**：
   - IC/IR 计算（Spearman 排名相关）

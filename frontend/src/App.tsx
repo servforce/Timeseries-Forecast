@@ -41,12 +41,14 @@ export default function App() {
     finetuneBatchSize: 32,
     contextLength: 512,
     saveModel: true,
+    modelId: undefined,
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<any | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const [tutorialOpen, setTutorialOpen] = useState(false);
+  const [lastModelId, setLastModelId] = useState<string | null>(null);
 
   const summary = useMemo(() => {
     if (!fileState?.text) return null;
@@ -99,11 +101,13 @@ export default function App() {
           finetuneBatchSize: params.finetuneBatchSize,
           contextLength: params.contextLength,
           saveModel: params.saveModel,
+          modelId: params.modelId?.trim() ? params.modelId.trim() : undefined,
         });
       }
 
       setResult(resp);
       if (resp?.model_id) {
+        setLastModelId(resp.model_id);
         message.success(`微调完成，model_id=${resp.model_id}`);
       } else {
         message.success("预测完成");
@@ -178,7 +182,7 @@ export default function App() {
                   />
                 )}
 
-                <ParamsForm mode={mode} value={params} onChange={setParams} />
+                <ParamsForm mode={mode} value={params} onChange={setParams} lastModelId={lastModelId} />
 
                 {error && <Alert type="error" showIcon message={error} />}
 
@@ -209,6 +213,39 @@ export default function App() {
 
               {view && (
                 <Space direction="vertical" style={{ width: "100%" }} size="large">
+                  {result?.model_id && (
+                    <Alert
+                      type="success"
+                      showIcon
+                      message="微调模型已保存"
+                      description={
+                        <Space direction="vertical" size="small" style={{ width: "100%" }}>
+                          <Text>
+                            model_id：<Text code copyable>{String(result.model_id)}</Text>
+                          </Text>
+                          <Button
+                            size="small"
+                            onClick={() => {
+                              setMode("finetune");
+                              setParams((prev) => ({ ...prev, modelId: String(result.model_id) }));
+                              message.success("已填入 model_id，可直接复用预测");
+                            }}
+                          >
+                            一键复用本次 model_id
+                          </Button>
+                          <Button
+                            size="small"
+                            onClick={() => {
+                              setParams((prev) => ({ ...prev, modelId: undefined }));
+                              message.success("已取消复用，可重新微调");
+                            }}
+                          >
+                            取消复用
+                          </Button>
+                        </Space>
+                      }
+                    />
+                  )}
                   <MetricsCard metrics={result?.metrics} />
                   <ResultChart view={view} />
                   <ResultTable

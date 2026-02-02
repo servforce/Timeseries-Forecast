@@ -4,6 +4,7 @@ Timeseries Forecast 是一个基于 Amazon Chronos-2 的时间序列预测系统
 - Zero-shot / Finetune 预测
 - 多分位输出（P10/P50/P90 等）
 - 指标评估（WQL/WAPE/IC/IR）
+- finetune 返回 `model_id` 可复用，模型默认保留 14 天后清理
 - 可视化结果展示及预测结果导出
 - MCP（Model Context Protocol）工具接入，支持 LLM 调用
 
@@ -59,6 +60,13 @@ docker compose up -d
 - 必填字段：`history_data`（含 `timestamp/item_id(or id)/target`）
 - 推荐提供 `freq`（如 D/H/W/M）
 - 若开启协变量：必须提供 `covariates`，且长度 = `prediction_length`
+
+## 模型复用与清理
+- Finetune 若 `save_model=true` 会返回 `model_id`，可在后续 finetune 接口中直接传入复用（跳过再次微调）
+- 已保存的微调模型默认保留 14 天，后台定时任务清理
+- 可通过环境变量配置：
+  - `FINETUNED_MODEL_RETENTION_DAYS`
+  - `FINETUNED_MODEL_CLEANUP_INTERVAL_HOURS`
 
 ## 指标说明（WQL/WAPE/IC/IR）
 - WQL/WAPE：由 AutoGluon evaluate 输出

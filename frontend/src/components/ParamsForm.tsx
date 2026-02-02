@@ -1,4 +1,4 @@
-import { Card, Col, Form, InputNumber, Row, Select, Switch } from "antd";
+import { Button, Card, Col, Form, Input, InputNumber, Row, Select, Space, Switch } from "antd";
 import { useEffect } from "react";
 
 export type ForecastMode = "zeroshot" | "finetune";
@@ -14,6 +14,7 @@ export type ForecastParams = {
   finetuneBatchSize: number;
   contextLength?: number;
   saveModel: boolean;
+  modelId?: string;
 };
 
 type ForecastFormValues = Omit<ForecastParams, "quantiles"> & {
@@ -36,8 +37,10 @@ export default function ParamsForm(props: {
   mode: ForecastMode;
   value: ForecastParams;
   onChange: (v: ForecastParams) => void;
+  lastModelId?: string | null;
 }) {
   const [form] = Form.useForm<ForecastFormValues>();
+  const hasModelId = Boolean(props.value?.modelId?.trim());
 
   useEffect(() => {
     form.setFieldsValue(props.value as unknown as ForecastFormValues);
@@ -56,6 +59,17 @@ export default function ParamsForm(props: {
       .map((x) => String(x).trim().toUpperCase())
       .filter((x) => Boolean(x));
     props.onChange({ ...(v as unknown as ForecastParams), quantiles: q, metrics: m });
+  }
+
+  function useLastModelId() {
+    if (!props.lastModelId) return;
+    form.setFieldsValue({ modelId: props.lastModelId });
+    emit();
+  }
+
+  function clearModelId() {
+    form.setFieldsValue({ modelId: undefined });
+    emit();
   }
 
   return (
@@ -146,6 +160,21 @@ export default function ParamsForm(props: {
             </Row>
             <Form.Item label="Save Model" name="saveModel" valuePropName="checked">
               <Switch />
+            </Form.Item>
+            <Form.Item
+              label="Model ID（可选）"
+              name="modelId"
+              help={hasModelId ? "当前处于复用模式，清空或点击“取消复用”可重新微调。" : undefined}
+            >
+              <Space.Compact style={{ width: "100%" }}>
+                <Input placeholder="不填则重新微调" allowClear />
+                <Button onClick={useLastModelId} disabled={!props.lastModelId}>
+                  用上次
+                </Button>
+                <Button onClick={clearModelId} disabled={!hasModelId}>
+                  取消复用
+                </Button>
+              </Space.Compact>
             </Form.Item>
           </Card>
         )}

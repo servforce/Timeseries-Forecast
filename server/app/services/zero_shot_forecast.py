@@ -1,4 +1,5 @@
 import logging
+import tempfile
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
@@ -125,6 +126,8 @@ def zeroshot_forecast_from_markdown_bytes(
             timestamp_column="timestamp",
         )
 
+    temp_dir_ctx = tempfile.TemporaryDirectory(prefix="ag-zeroshot-")
+    predictor_path = temp_dir_ctx.name
     # Some AutoGluon versions determine quantile outputs from predictor.quantile_levels.
     # Prefer configuring quantile_levels at predictor construction to ensure requested quantiles are produced.
     try:
@@ -135,6 +138,7 @@ def zeroshot_forecast_from_markdown_bytes(
             known_covariates_names=parsed.known_covariates_names or None,
             freq=parsed.freq,
             quantile_levels=quantiles,
+            path=predictor_path,
         )
     except TypeError:
         predictor = TimeSeriesPredictor(
@@ -144,6 +148,8 @@ def zeroshot_forecast_from_markdown_bytes(
             known_covariates_names=parsed.known_covariates_names or None,
             freq=parsed.freq,
         )
+        if hasattr(predictor, "path"):
+            predictor.path = predictor_path  # type: ignore[attr-defined]
         if hasattr(predictor, "quantile_levels"):
             predictor.quantile_levels = quantiles  # type: ignore[attr-defined]
 
@@ -431,4 +437,6 @@ def zeroshot_forecast_from_markdown_bytes(
         "model_used": "autogluon-chronos2-zeroshot",
         "generated_at": pd.Timestamp.now().isoformat(),
     }
+    if temp_dir_ctx is not None:
+        temp_dir_ctx.cleanup()
     return result

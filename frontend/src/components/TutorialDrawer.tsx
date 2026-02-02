@@ -65,7 +65,21 @@ export default function TutorialDrawer(props: { open: boolean; onClose: () => vo
 
         <Divider />
 
-        <Title level={5}>3. 评估指标（WQL / WAPE / IC / IR）</Title>
+        <Title level={5}>3. 接口使用说明（Zero-shot / Finetune）</Title>
+        <Paragraph>
+          <Text strong>Zero-shot</Text>：上传 Markdown 后直接预测，不保存模型，也不会返回 <Text code>model_id</Text>。
+        </Paragraph>
+        <Paragraph>
+          <Text strong>Finetune</Text>：上传数据后先微调再预测。若开启 <Text code>save_model</Text>，会返回 <Text code>model_id</Text>，后续可直接传入该
+          <Text code>model_id</Text> 复用预测（跳过再次微调）。
+        </Paragraph>
+        <Paragraph>
+          <Text strong>模型保留策略</Text>：已保存的微调模型默认保留 14 天，超过期限会自动清理，需要重新微调生成新的 <Text code>model_id</Text>。
+        </Paragraph>
+
+        <Divider />
+
+        <Title level={5}>4. 评估指标（WQL / WAPE / IC / IR）</Title>
         <Paragraph>
           目前支持四个指标的输出：WQL、WAPE、IC、IR
         </Paragraph>
@@ -83,7 +97,7 @@ export default function TutorialDrawer(props: { open: boolean; onClose: () => vo
         </Paragraph>
         <Divider />
 
-        <Title level={5}>4. 可视化窗口</Title>
+        <Title level={5}>5. 可视化窗口</Title>
         <Paragraph>
         可视化展示：阴影区域表示p10-p90置信区间,主线表示p50。
         </Paragraph>

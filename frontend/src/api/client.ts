@@ -15,6 +15,7 @@ type FineTuneParams = BaseParams & {
   finetuneBatchSize: number;
   contextLength?: number;
   saveModel: boolean;
+  modelId?: string;
 };
 
 function getApiBaseUrl() {
@@ -86,6 +87,7 @@ export const forecastApi = {
     url.searchParams.set("finetune_learning_rate", String(p.finetuneLearningRate));
     url.searchParams.set("finetune_batch_size", String(p.finetuneBatchSize));
     url.searchParams.set("save_model", String(p.saveModel));
+    if (p.modelId) url.searchParams.set("model_id", p.modelId);
     if (p.contextLength) url.searchParams.set("context_length", String(p.contextLength));
     if (p.freq) url.searchParams.set("freq", p.freq);
     buildQuantileQuery(url.searchParams, p.quantiles);

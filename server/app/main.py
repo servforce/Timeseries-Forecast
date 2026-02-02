@@ -3,6 +3,7 @@ from pathlib import Path
 import sys
 import logging
 from contextlib import asynccontextmanager
+import asyncio
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.routing import APIRouter
@@ -12,6 +13,7 @@ from app.core.exception_handlers import register_exception_handlers
 from app.core.config import settings
 from app.api.main import api_router
 from app.api.routes import health
+from app.services.model_cleanup import cleanup_finetuned_models
 
 
 
@@ -21,6 +23,18 @@ if str(_project_root) not in sys.path:
 
 logger = logging.getLogger(__name__)
 
+async def _cleanup_loop() -> None:
+    interval_hours = int(settings.FINETUNED_MODEL_CLEANUP_INTERVAL_HOURS)
+    if interval_hours <= 0:
+        return
+    interval_seconds = interval_hours * 3600
+    while True:
+        try:
+            cleanup_finetuned_models()
+        except Exception as exc:
+            logger.warning("后台清理任务执行失败: %s", exc)
+        await asyncio.sleep(interval_seconds)
+
 @asynccontextmanager
 async def lifespan(app:FastAPI):
     '''应用生命周期管理'''
@@ -29,6 +43,10 @@ async def lifespan(app:FastAPI):
     logger.info("="*40)
     logging.info(f'Starting {settings.APP_NAME} v{settings.APP_VERSION}')
     logger.info("="*40)
+
+    cleanup_task: asyncio.Task | None = None
+    if settings.FINETUNED_MODEL_RETENTION_DAYS > 0 and settings.FINETUNED_MODEL_CLEANUP_INTERVAL_HOURS > 0:
+        cleanup_task = asyncio.create_task(_cleanup_loop())
 
     if settings.ENABLE_MCP:
         from app.mcp.server import mcp
@@ -60,6 +78,12 @@ async def lifespan(app:FastAPI):
             yield #应用运行期间
 
             #关闭时执行
+            if cleanup_task is not None:
+                cleanup_task.cancel()
+                try:
+                    await cleanup_task
+                except asyncio.CancelledError:
+                    pass
             logger.info("Application shutdown")
     else:
         logger.info("=" * 40)
@@ -81,6 +105,12 @@ async def lifespan(app:FastAPI):
         yield  # 应用运行期间
         
         # 关闭时执行
+        if cleanup_task is not None:
+            cleanup_task.cancel()
+            try:
+                await cleanup_task
+            except asyncio.CancelledError:
+                pass
         logger.info("Application shutdown")
 
 

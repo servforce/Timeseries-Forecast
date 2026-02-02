@@ -26,6 +26,7 @@ async def finetune_forecast(
     finetune_batch_size: int = Query(default=32, gt=0, description="微调 batch size"),
     context_length: int = Query(default=512, gt=0, description="上下文长度（默认 512，会自动按最短序列长度截断）"),
     save_model: bool = Query(default=True, description="是否保存微调模型并返回 model_id"),
+    model_id: Optional[str] = Query(default=None, description="已有微调模型 ID（传入则直接加载预测）"),
 ) -> Dict[str, Any]:
     if not file.filename.lower().endswith(".md"):
         raise DataException(
@@ -49,6 +50,7 @@ async def finetune_forecast(
             finetune_batch_size=finetune_batch_size,
             context_length=context_length,
             save_model=save_model,
+            model_id=model_id,
         )
         return result
     except (DataException, ModelException):

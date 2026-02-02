@@ -6,6 +6,8 @@
 - **基于 Chronos-2**: 利用预训练的大型时间序列模型，支持 Zero-shot (零样本) 预测、以及微调版本模型预测。
 - **多模态协变量支持**: 支持传入**历史协变量** (如过去的价格) 和**未来协变量** (如未来的促销计划)。
 - **多分位预测**: 支持配置预测分位数 (如 P10, P50, P90)，提供概率预测能力。
+- **模型复用**: finetune 返回 `model_id`，可直接加载复用（跳过再次微调）。
+- **存储策略**: zeroshot 使用临时目录；finetune 模型默认保留 14 天后自动清理（可配置，后台定时任务执行）。
 - **MCP 集成**: 内置 MCP Server，支持 LLM 直接调用工具读取文档、进行预测分析。
 - **高性能架构**: 基于 FastAPI + Uvicorn，支持异步并发与线程池推理。
 
@@ -50,7 +52,7 @@
 
 ### 模型层
 - `models/model_save/chronos_model`: Chronos-2 权重挂载目录（建议 volume 挂载）
-- `models/model_save/finetuned_models`: 微调模型保存目录（`model_id` 子目录）
+- `models/model_save/finetuned_models`: 微调模型保存目录（`model_id` 子目录，默认保留 14 天）
 
 ## 🚀 快速开始
 
@@ -80,6 +82,4 @@ uvicorn app.main:app --host 0.0.0.0 --port 5001 --reload
 ### 5.Docker
 - Dockerfile：打包代码，创建挂载目录，下载环境依赖，暴露端口5001。
 - docker-compose 一键编排创建容器，挂载模型权重的大文件目录。
-
-
 

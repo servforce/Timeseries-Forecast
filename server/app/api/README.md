@@ -22,6 +22,8 @@
   - `finetune_batch_size`（默认 32）
   - `context_length`（可选）
   - `save_model`：是否保存微调模型并返回 `model_id`（默认 `true`）
+  - `model_id`：已有微调模型 ID（传入则直接加载预测，跳过本次微调）
+  - 已保存模型默认保留 14 天后自动清理（后台定时任务执行，可通过环境变量调整）
 
 ## Markdown JSON 输入格式
 Markdown 中包含一个 `json` 代码块，结构示例：

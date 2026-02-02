@@ -19,6 +19,7 @@
   - 必须提供 `covariates`
   - 可选提供 `category_cov_name`（分类协变量列名；未列出者按数值协变量处理）
   - `covariates` 中每个 `item_id` 的行数必须等于 `prediction_length`
+- 如提供 `model_id`：将直接加载对应微调模型进行预测，跳过本次微调
 - 如果 `with_cov=false`，应忽略输入中的协变量字段
 
 ## 重要限制（避免服务资源耗尽）

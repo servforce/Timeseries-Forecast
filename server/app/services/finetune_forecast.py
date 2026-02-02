@@ -1,4 +1,6 @@
 import logging
+import shutil
+import tempfile
 import uuid
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -43,6 +45,7 @@ def finetune_forecast_from_markdown_bytes(
     finetune_batch_size: int = 32,
     context_length: int = 512,
     save_model: bool = True,
+    model_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     if len(markdown_bytes) > settings.MAX_UPLOAD_BYTES:
         raise DataException(
@@ -70,6 +73,7 @@ def finetune_forecast_from_markdown_bytes(
         max_prediction_length=settings.max_prediction_length,
     )
 
+
     quantiles = _validate_quantiles(quantiles)
     metrics = normalize_metrics_request(metrics)
 
@@ -77,12 +81,13 @@ def finetune_forecast_from_markdown_bytes(
     if selected_device is None:
         selected_device = choose_device(prefer_cuda=True)
 
-    if finetune_num_steps <= 0 or finetune_num_steps > settings.MAX_FINETUNE_STEPS:
-        raise DataException(
-            error_code=ErrorCode.VALIDATION_ERROR,
-            message="finetune_num_steps 超过服务限制",
-            details={"finetune_num_steps": finetune_num_steps, "max": settings.MAX_FINETUNE_STEPS},
-        )
+    if model_id is None:
+        if finetune_num_steps <= 0 or finetune_num_steps > settings.MAX_FINETUNE_STEPS:
+            raise DataException(
+                error_code=ErrorCode.VALIDATION_ERROR,
+                message="finetune_num_steps 超过服务限制",
+                details={"finetune_num_steps": finetune_num_steps, "max": settings.MAX_FINETUNE_STEPS},
+            )
 
     TimeSeriesDataFrame, TimeSeriesPredictor = _lazy_import_autogluon()
 
@@ -100,94 +105,132 @@ def finetune_forecast_from_markdown_bytes(
             timestamp_column="timestamp",
         )
 
-    try:
-        predictor = TimeSeriesPredictor(
-            prediction_length=prediction_length,
-            target="target",
-            eval_metric="WQL",
-            known_covariates_names=parsed.known_covariates_names or None,
-            freq=parsed.freq,
-            quantile_levels=quantiles,
-        )
-    except TypeError:
-        predictor = TimeSeriesPredictor(
-            prediction_length=prediction_length,
-            target="target",
-            eval_metric="WQL",
-            known_covariates_names=parsed.known_covariates_names or None,
-            freq=parsed.freq,
-        )
-        if hasattr(predictor, "quantile_levels"):
-            predictor.quantile_levels = quantiles  # type: ignore[attr-defined]
+    predictor: Any
+    model_id_used: Optional[str] = None
+    temp_dir_ctx: Optional[tempfile.TemporaryDirectory] = None
 
-    model_path = settings.CHRONOS_MODEL_PATH
-    if not model_path:
-        raise ModelException(
-            error_code=ErrorCode.MODEL_LOAD_FAILED,
-            message="未配置 Chronos-2 模型路径（CHRONOS_MODEL_PATH）",
-        )
-
-    min_series_len = int(parsed.history_df.groupby("item_id").size().min())
-    context_length_auto = min(int(context_length), min_series_len)
-
-    last_fit_exc: Optional[Exception] = None
-
-    for model_name in [settings.AG_CHRONOS_MODEL_NAME, "Chronos2", "Chronos"]:
-        if not model_name:
-            continue
-
-        hps: Dict[str, Any] = {
-            "ag_args": {"name_suffix": "_Finetuned"},
-            "model_path": model_path,
-            "fine_tune": True,
-            "device": selected_device,
-            "fine_tune_steps": int(finetune_num_steps),
-            "fine_tune_lr": float(finetune_learning_rate),
-            "fine_tune_batch_size": int(finetune_batch_size),
-        }
-        hps["context_length"] = int(context_length_auto)
-
+    if model_id:
+        model_id_used = model_id
+        model_dir = Path(settings.FINETUNED_MODELS_DIR) / model_id
+        if not model_dir.exists():
+            raise ModelException(
+                error_code=ErrorCode.MODEL_LOAD_FAILED,
+                message="未找到对应的微调模型（model_id 不存在）",
+                details={"model_id": model_id, "model_dir": str(model_dir)},
+            )
         try:
-            try:
-                predictor.fit(
-                    train_data=train_data,
-                    enable_ensemble=False,
-                    hyperparameters={model_name: [hps]},
-                    num_val_windows=1,
-                )
-            except TypeError:
-                predictor.fit(
-                    train_data=train_data,
-                    enable_ensemble=False,
-                    hyperparameters={model_name: [hps]},
-                )
-            break
+            predictor = TimeSeriesPredictor.load(str(model_dir))
         except Exception as exc:
-            last_fit_exc = exc
-            logger.warning("AutoGluon finetune fit 失败，尝试下一个模型名: %s, reason=%s", model_name, exc)
-            continue
-    else:
-        m = _MIN_OBS_RE.search(str(last_fit_exc)) if last_fit_exc else None
-        if m:
-            required = int(m.group(1))
+            raise ModelException(
+                error_code=ErrorCode.MODEL_LOAD_FAILED,
+                message="微调模型加载失败",
+                details={"model_id": model_id, "model_dir": str(model_dir), "reason": str(exc)},
+            ) from exc
+
+        pred_len = getattr(predictor, "prediction_length", None)
+        if pred_len is not None and int(pred_len) != int(prediction_length):
             raise DataException(
                 error_code=ErrorCode.VALIDATION_ERROR,
-                message=(
-                    "时间序列过短，无法用于当前 prediction_length 的模型窗口构造；"
-                    "请提供更长的 history_data，或降低 prediction_length。"
-                ),
-                details={
-                    "required_min_observations": required,
-                    "min_series_length": min_series_len,
-                    "prediction_length": prediction_length,
-                },
+                message="model_id 对应模型的 prediction_length 与请求不一致",
+                details={"model_prediction_length": int(pred_len), "request_prediction_length": prediction_length},
             )
 
-        raise ModelException(
-            error_code=ErrorCode.MODEL_LOAD_FAILED,
-            message="AutoGluon Chronos 微调初始化失败（请检查 autogluon 版本与模型权重路径）",
-            details={"model_path": model_path, "reason": str(last_fit_exc) if last_fit_exc else None},
-        )
+        if hasattr(predictor, "quantile_levels"):
+            predictor.quantile_levels = quantiles  # type: ignore[attr-defined]
+    else:
+        temp_dir_ctx = tempfile.TemporaryDirectory(prefix="ag-finetune-")
+        predictor_path = temp_dir_ctx.name
+        try:
+            predictor = TimeSeriesPredictor(
+                prediction_length=prediction_length,
+                target="target",
+                eval_metric="WQL",
+                known_covariates_names=parsed.known_covariates_names or None,
+                freq=parsed.freq,
+                quantile_levels=quantiles,
+                path=predictor_path,
+            )
+        except TypeError:
+            predictor = TimeSeriesPredictor(
+                prediction_length=prediction_length,
+                target="target",
+                eval_metric="WQL",
+                known_covariates_names=parsed.known_covariates_names or None,
+                freq=parsed.freq,
+            )
+            if hasattr(predictor, "path"):
+                predictor.path = predictor_path  # type: ignore[attr-defined]
+            if hasattr(predictor, "quantile_levels"):
+                predictor.quantile_levels = quantiles  # type: ignore[attr-defined]
+
+        model_path = settings.CHRONOS_MODEL_PATH
+        if not model_path:
+            raise ModelException(
+                error_code=ErrorCode.MODEL_LOAD_FAILED,
+                message="未配置 Chronos-2 模型路径（CHRONOS_MODEL_PATH）",
+            )
+
+        min_series_len = int(parsed.history_df.groupby("item_id").size().min())
+        context_length_auto = min(int(context_length), min_series_len)
+
+        last_fit_exc: Optional[Exception] = None
+
+        for model_name in [settings.AG_CHRONOS_MODEL_NAME, "Chronos2", "Chronos"]:
+            if not model_name:
+                continue
+
+            hps: Dict[str, Any] = {
+                "ag_args": {"name_suffix": "_Finetuned"},
+                "model_path": model_path,
+                "fine_tune": True,
+                "device": selected_device,
+                "fine_tune_steps": int(finetune_num_steps),
+                "fine_tune_lr": float(finetune_learning_rate),
+                "fine_tune_batch_size": int(finetune_batch_size),
+            }
+            hps["context_length"] = int(context_length_auto)
+
+            try:
+                try:
+                    predictor.fit(
+                        train_data=train_data,
+                        enable_ensemble=False,
+                        hyperparameters={model_name: [hps]},
+                        num_val_windows=1,
+                    )
+                except TypeError:
+                    predictor.fit(
+                        train_data=train_data,
+                        enable_ensemble=False,
+                        hyperparameters={model_name: [hps]},
+                    )
+                break
+            except Exception as exc:
+                last_fit_exc = exc
+                logger.warning("AutoGluon finetune fit 失败，尝试下一个模型名: %s, reason=%s", model_name, exc)
+                continue
+        else:
+            m = _MIN_OBS_RE.search(str(last_fit_exc)) if last_fit_exc else None
+            if m:
+                required = int(m.group(1))
+                raise DataException(
+                    error_code=ErrorCode.VALIDATION_ERROR,
+                    message=(
+                        "时间序列过短，无法用于当前 prediction_length 的模型窗口构造；"
+                        "请提供更长的 history_data，或降低 prediction_length。"
+                    ),
+                    details={
+                        "required_min_observations": required,
+                        "min_series_length": min_series_len,
+                        "prediction_length": prediction_length,
+                    },
+                )
+
+            raise ModelException(
+                error_code=ErrorCode.MODEL_LOAD_FAILED,
+                message="AutoGluon Chronos 微调初始化失败（请检查 autogluon 版本与模型权重路径）",
+                details={"model_path": model_path, "reason": str(last_fit_exc) if last_fit_exc else None},
+            )
 
     try:
         pred = predictor.predict(
@@ -387,13 +430,21 @@ def finetune_forecast_from_markdown_bytes(
                 "detail": warnings,
             }
 
-    model_id: Optional[str] = None
-    if save_model:
-        model_id = str(uuid.uuid4())
-        out_dir = Path(settings.FINETUNED_MODELS_DIR) / model_id
+    model_id_out: Optional[str] = model_id_used
+    if model_id_used is None and save_model:
+        model_id_out = str(uuid.uuid4())
+        out_dir = Path(settings.FINETUNED_MODELS_DIR) / model_id_out
         out_dir.mkdir(parents=True, exist_ok=False)
         try:
-            predictor.save(str(out_dir))
+            try:
+                predictor.save(str(out_dir))
+            except TypeError:
+                # Some versions only support predictor.save() with no args (save to predictor.path).
+                predictor.save()
+                src_dir = Path(getattr(predictor, "path", ""))
+                if src_dir and src_dir.exists() and src_dir != out_dir:
+                    for child in src_dir.iterdir():
+                        shutil.move(str(child), str(out_dir / child.name))
         except Exception as exc:
             raise ModelException(
                 error_code=ErrorCode.MODEL_LOAD_FAILED,
@@ -410,6 +461,8 @@ def finetune_forecast_from_markdown_bytes(
         "model_used": "autogluon-chronos2-finetuned",
         "generated_at": pd.Timestamp.now().isoformat(),
     }
-    if model_id is not None:
-        result["model_id"] = model_id
+    if model_id_out is not None:
+        result["model_id"] = model_id_out
+    if temp_dir_ctx is not None:
+        temp_dir_ctx.cleanup()
     return result

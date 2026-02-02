@@ -59,6 +59,7 @@ def register_tools(mcp) -> None :
         finetune_batch_size: int = 32,
         context_length: Optional[int] = None,
         save_model: bool = True,
+        model_id: Optional[str] = None,
     ) -> str:
         """
         Fine-tune + 预测工具（AutoGluon Chronos2）。
@@ -84,5 +85,6 @@ def register_tools(mcp) -> None :
             finetune_batch_size=finetune_batch_size,
             context_length=context_length,
             save_model=save_model,
+            model_id=model_id,
         )
         return json.dumps(result, ensure_ascii=False, indent=2)
