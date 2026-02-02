@@ -6,7 +6,6 @@
 
 接入地址：
 - SSE：`http://localhost:5001/mcp/sse`
-- SSH（如启用）：`http://localhost:5001/mcp/ssh`
 
 典型流程：
 1) `list_tools` 获取工具列表  

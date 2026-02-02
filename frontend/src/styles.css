@@ -1,3 +1,22 @@
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Instrument+Sans:wght@400;500;600&display=swap");
+
+:root {
+  --ink-950: #0b1220;
+  --ink-900: #111827;
+  --ink-700: #334155;
+  --ink-500: #64748b;
+  --ink-300: #cbd5f5;
+  --teal-500: #1ea5a3;
+  --teal-300: #5fe1da;
+  --amber-400: #f5c97a;
+  --paper: #f7f8fb;
+  --card: rgba(255, 255, 255, 0.85);
+  --card-strong: rgba(255, 255, 255, 0.94);
+  --border-soft: rgba(15, 23, 42, 0.08);
+  --shadow-soft: 0 12px 30px rgba(15, 23, 42, 0.12);
+  --shadow-subtle: 0 6px 18px rgba(15, 23, 42, 0.08);
+}
+
 html,
 body {
   height: 100%;
@@ -5,10 +24,166 @@ body {
 
 body {
   margin: 0;
-  background: #f5f6f8;
+  font-family: "Space Grotesk", "Instrument Sans", "IBM Plex Sans", sans-serif;
+  color: var(--ink-900);
+  background: radial-gradient(circle at 15% 20%, rgba(94, 234, 212, 0.3), transparent 45%),
+    radial-gradient(circle at 85% 10%, rgba(245, 201, 122, 0.28), transparent 40%),
+    linear-gradient(180deg, #f5f7fb 0%, #edf1f9 55%, #f6f8fb 100%);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: radial-gradient(rgba(17, 24, 39, 0.08) 0.5px, transparent 0.5px);
+  background-size: 24px 24px;
+  opacity: 0.35;
+  pointer-events: none;
+  z-index: 0;
 }
 
 #root {
   height: 100%;
 }
 
+.app-shell {
+  background: transparent;
+}
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  backdrop-filter: blur(14px);
+  background: linear-gradient(90deg, rgba(15, 23, 42, 0.92) 0%, rgba(15, 23, 42, 0.8) 60%, rgba(15, 23, 42, 0.85) 100%);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.25);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.brand-title {
+  font-family: "Space Grotesk", "Instrument Sans", sans-serif;
+  letter-spacing: 0.5px;
+}
+
+.brand-subtitle {
+  color: rgba(226, 232, 240, 0.75);
+}
+
+.content-wrap {
+  position: relative;
+  z-index: 1;
+  padding: 24px;
+}
+
+.panel {
+  border-radius: 18px;
+  background: var(--card);
+  box-shadow: var(--shadow-soft);
+  border: 1px solid var(--border-soft);
+  backdrop-filter: blur(8px);
+}
+
+.panel-body {
+  height: 100%;
+  padding: 20px;
+}
+
+.panel-inner {
+  height: 100%;
+}
+
+.panel-left {
+  animation: fadeInUp 0.6s ease both;
+}
+
+.panel-right {
+  animation: fadeInUp 0.6s ease 0.1s both;
+}
+
+.section-stack > .ant-space-item {
+  width: 100%;
+}
+
+.primary-action {
+  height: 44px;
+  border-radius: 12px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #1ea5a3 0%, #3cc6bf 45%, #6ee7d7 100%);
+  border: none;
+  box-shadow: 0 10px 20px rgba(30, 165, 163, 0.25);
+}
+
+.primary-action:hover {
+  background: linear-gradient(135deg, #14807e 0%, #2cb4ac 50%, #5fe1da 100%);
+}
+
+.ghost-button {
+  border-radius: 999px;
+  border: 1px solid rgba(226, 232, 240, 0.4);
+  color: #e2e8f0;
+  background: rgba(15, 23, 42, 0.1);
+}
+
+.ghost-button:hover {
+  border-color: rgba(94, 234, 212, 0.7);
+  color: #ffffff;
+}
+
+.ant-card {
+  border-radius: 16px;
+}
+
+.ant-card-head {
+  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+  font-weight: 600;
+}
+
+.ant-tabs-nav::before {
+  border-bottom: none !important;
+}
+
+.ant-tabs-tab {
+  font-weight: 600;
+  color: var(--ink-500);
+}
+
+.ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: var(--ink-900) !important;
+}
+
+.ant-alert {
+  border-radius: 12px;
+}
+
+.ant-select-selector,
+.ant-input-number,
+.ant-input {
+  border-radius: 10px !important;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 992px) {
+  .app-header {
+    flex-wrap: wrap;
+    padding: 12px 16px;
+    height: auto;
+  }
+
+  .brand-subtitle {
+    display: none;
+  }
+
+  .content-wrap {
+    padding: 16px;
+  }
+}

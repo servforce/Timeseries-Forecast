@@ -117,26 +117,26 @@ export default function App() {
   }
 
   return (
-    <Layout style={{ height: "100%" }}>
-      <Header style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <Title level={4} style={{ color: "#fff", margin: 0 }}>
+    <Layout className="app-shell" style={{ height: "100%" }}>
+      <Header className="app-header" style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <Title level={4} className="brand-title" style={{ color: "#fff", margin: 0 }}>
           Timeseries Forecast
         </Title>
-        <Text style={{ color: "rgba(255,255,255,0.75)" }}>
+        <Text className="brand-subtitle">
           基于Chronos-2的zeroshot和finetune预测服务
         </Text>
         <div style={{ flex: 1 }} />
         <Space>
-          <Button onClick={() => setHelpOpen(true)}>输入模版</Button>
-          <Button onClick={() => setTutorialOpen(true)}>使用教程</Button>
+          <Button className="ghost-button" onClick={() => setHelpOpen(true)}>输入模版</Button>
+          <Button className="ghost-button" onClick={() => setTutorialOpen(true)}>使用教程</Button>
         </Space>
       </Header>
 
-      <Content style={{ padding: 16 }}>
-        <Row gutter={16} style={{ height: "calc(100vh - 64px - 32px)" }}>
-          <Col span={8} style={{ height: "100%" }}>
-            <Card style={{ height: "100%" }} bodyStyle={{ height: "100%" }}>
-              <Space direction="vertical" style={{ width: "100%" }} size="middle">
+      <Content className="content-wrap">
+        <Row gutter={[16, 16]} style={{ minHeight: "calc(100vh - 64px - 48px)" }}>
+          <Col xs={24} lg={8} style={{ height: "100%" }}>
+            <Card className="panel panel-left" style={{ height: "100%" }} bodyStyle={{ height: "100%" }} styles={{ body: { height: "100%", padding: 20 } }}>
+              <Space className="section-stack" direction="vertical" style={{ width: "100%" }} size="middle">
                 <Tabs
                   items={tabs}
                   activeKey={mode}
@@ -185,6 +185,7 @@ export default function App() {
                 <Button
                   type="primary"
                   block
+                  className="primary-action"
                   loading={loading}
                   onClick={onRun}
                   disabled={!fileState?.file}
@@ -195,8 +196,8 @@ export default function App() {
             </Card>
           </Col>
 
-          <Col span={16} style={{ height: "100%" }}>
-            <Card style={{ height: "100%" }} bodyStyle={{ height: "100%" }}>
+          <Col xs={24} lg={16} style={{ height: "100%" }}>
+            <Card className="panel panel-right" style={{ height: "100%" }} bodyStyle={{ height: "100%" }} styles={{ body: { height: "100%", padding: 20 } }}>
               {!result && !loading && (
                 <Alert
                   type="info"

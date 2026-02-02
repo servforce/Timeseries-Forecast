@@ -16,7 +16,7 @@ export default function TutorialDrawer(props: { open: boolean; onClose: () => vo
           type="info"
           showIcon
           message="推荐工作流"
-          description="先 Zero-shot 跑基线；若效果不理想，且用户可提供强相关协变量，可以使用 Finetune。需要评估指标（WQL/WAPE）时，在 Markdown JSON 中提供 test_data。"
+          description="先 Zero-shot 跑基线；若效果不理想，且用户可提供强相关协变量，可以使用 Finetune接口进行模型微调并预测。"
         />
 
         <Title level={5}>1. 输入文件（Markdown）</Title>
@@ -25,8 +25,11 @@ export default function TutorialDrawer(props: { open: boolean; onClose: () => vo
           代码块。
         </Paragraph>
         <Paragraph>
-          上传格式要求：必要三列：时间（列名定义为timestamp）、ID（为每条序列定义一个任意id，列名为item_id）、目标列（待预测目标，列名定义为target）。
+          上传格式要求：必要三列：时间（列名定义为 <Text code>timestamp</Text>）、ID（为每条序列定义一个任意id，列名为 <Text code>item_id</Text>）、目标列（待预测目标，列名定义为 <Text code>target</Text>）。
           可以按需上传协变量，并需要传入freq（时间间隔，如日频数据用D，时频数据用H）。详细格式参见输入样例。
+        </Paragraph>
+        <Paragraph>
+          协变量支持：输入数据传入 <Text code>future_cov</Text> 列作为协变量传入。传入 <Text code>known_covariates_names</Text> 定义未来已知协变量（需要提供未来预测步长天数的协变量数据），其余协变量传入将被作为历史协变量使用。
         </Paragraph>
         <Divider />
 
@@ -35,20 +38,20 @@ export default function TutorialDrawer(props: { open: boolean; onClose: () => vo
           <Text strong>Prediction Length</Text>：预测步长（未来预测点数）。
         </Paragraph>
         <Paragraph>
-          <Text strong>Quantiles</Text>：分位数输出（0.05~0.95，步长 0.05）。
+          <Text strong>Quantiles</Text>：分位数输出（支持0.05~0.95，步长 0.05）。
         </Paragraph>
         <Paragraph>
-          <Text strong>Metrics</Text>：评估指标选择（WQL/WAPE/IC/IR），可多选。
+          <Text strong>Metrics</Text>：评估指标选择（支持WQL/WAPE/IC/IR输出），可多选。
         </Paragraph>
         <Paragraph>
-          <Text strong>Context Length</Text>：模型预测的上下文长度（默认 512）。模型根据上下文长度，学习context_length长度的历史序列规律，用户根据序列长度按需调整。
+          <Text strong>Context Length</Text>：模型预测的可学习上下文长度（默认 512，最大支持8192）。模型根据上下文长度，学习context_length长度的历史序列规律。用户根据序列覆盖长度及频率调整。
         </Paragraph>
         <Paragraph>
-          <Text strong>With Covariates</Text>：开启后需要在 Markdown JSON 中提供 <Text code>future_cov</Text> 与{" "}。提供协变量长度需要包含未来预测步长区间的数据。
-          还需要提供与协变量列名一一对应的<Text code>known_covariates_names</Text>列。关闭后即使提供协变量模型也不会使用。
+          <Text strong>With Covariates</Text>：开启后需要在 Markdown JSON 中提供 <Text code>future_cov</Text> 与{" "}.提供协变量长度需要包含未来预测步长区间的数据。
+          根据提供的<Text code>known_covariates_names</Text>列，作为未来已知协变量，其余未在<Text code>known_covariates_names</Text>中的协变量将被作为仅历史协变量。<Text strong>With Covariates</Text>关闭后即使提供协变量模型也会进行单变量预测。
         </Paragraph>
         <Paragraph>
-          <Text strong>Finetune 参数</Text>：Steps/LR/BatchSize 控制微调强度与耗时，建议从小步数开始。
+          <Text strong>Finetune 参数</Text>：Steps/LR/BatchSize 一些微调的参数，控制微调性能，微调建议序列数大于100条，且历史长度大于512。
         </Paragraph>
 
         <Divider />
@@ -58,11 +61,17 @@ export default function TutorialDrawer(props: { open: boolean; onClose: () => vo
           目前支持四个指标的输出：WQL、WAPE、IC、IR
         </Paragraph>
         <Paragraph>
-          
+          <Text strong>WQL</Text>：加权量化损失，衡量预测值与真实值之间的差距，越小越好。
         </Paragraph>
         <Paragraph>
+          <Text strong>WAPE</Text>：加权绝对百分比误差，衡量预测值与真实值之间的相对差距，越小越好。
         </Paragraph>
-
+        <Paragraph>
+          <Text strong>IC</Text>：信息量准则，衡量模型对未来信息的利用程度，越大越好。
+        </Paragraph>
+        <Paragraph>
+          <Text strong>IR</Text>：信息比率，衡量模型预测值与真实值之间的相关性，越大越好。
+        </Paragraph>
         <Divider />
 
         <Title level={5}>4. 可视化窗口</Title>

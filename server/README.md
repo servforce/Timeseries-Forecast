@@ -1,9 +1,8 @@
-# Chronos Forecast Service
+# 后端服务说明文档
 
 基于 Amazon Chronos-2 模型构建的高性能时间序列预测微服务。本项目不仅提供标准的 RESTful API，还集成了 **MCP (Model Context Protocol)**，可作为 LLM (如 Claude Desktop, Cursor) 的直接工具使用。
 
 ## ✨ 核心特性
-
 - **基于 Chronos-2**: 利用预训练的大型时间序列模型，支持 Zero-shot (零样本) 预测、以及微调版本模型预测。
 - **多模态协变量支持**: 支持传入**历史协变量** (如过去的价格) 和**未来协变量** (如未来的促销计划)。
 - **多分位预测**: 支持配置预测分位数 (如 P10, P50, P90)，提供概率预测能力。
@@ -82,11 +81,5 @@ uvicorn app.main:app --host 0.0.0.0 --port 5001 --reload
 - Dockerfile：打包代码，创建挂载目录，下载环境依赖，暴露端口5001。
 - docker-compose 一键编排创建容器，挂载模型权重的大文件目录。
 
-## 🌐 Frontend（可选）
-- 前端代码：`frontend/`（Vite + React + Ant Design + ECharts）
-- 启动（本机）：`cd frontend && npm install && npm run dev`
 
-## 🔗 相关文档
-- API 说明：`server/app/api/README.md`
-- 服务层说明：`server/app/services/README.md`
-- MCP 说明：`server/app/mcp/README.md`
+

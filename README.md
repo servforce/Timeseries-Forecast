@@ -4,6 +4,7 @@ Timeseries Forecast 是一个基于 Amazon Chronos-2 的时间序列预测系统
 - Zero-shot / Finetune 预测
 - 多分位输出（P10/P50/P90 等）
 - 指标评估（WQL/WAPE/IC/IR）
+- 可视化结果展示及预测结果导出
 - MCP（Model Context Protocol）工具接入，支持 LLM 调用
 
 ## 目录导航
@@ -15,7 +16,16 @@ Timeseries Forecast 是一个基于 Amazon Chronos-2 的时间序列预测系统
 - 模型与数据结构：[server/app/models/README.md](server/app/models/README.md)
 - 核心配置/异常：[server/app/core/README.md](server/app/core/README.md)
 
-## 快速开始
+## 技术栈
+- 后端：FastAPI / Uvicorn / AutoGluon TimeSeries（Chronos-2）/ PyTorch / Pandas / MCP（FastMCP）
+- 前端：React 18 / TypeScript / Vite / Ant Design / ECharts
+
+## 目录结构（简要）：
+- `server/`：后端服务与 MCP
+- `frontend/`：前端界面
+- `scripts/`：本地一键启动脚本
+
+## 后端/前端本地开发启动方式
 ### 1) 后端
 ```bash
 pip install -r server/requirements.txt
@@ -37,6 +47,13 @@ npm run dev
 bash scripts/dev.sh
 ```
 
+## Docker 启动方式
+```bash
+docker compose up -d
+```
+后端：`http://localhost:5001`  
+前端：`http://localhost:5173`
+
 ## 数据输入要点
 - 输入为 Markdown，必须包含 ```json 代码块
 - 必填字段：`history_data`（含 `timestamp/item_id(or id)/target`）
@@ -51,3 +68,17 @@ bash scripts/dev.sh
 ## MCP / Ollama 说明
 后端启动后 MCP SSE 地址：`http://localhost:5001/mcp/sse`  
 可用 `ollama_client.py` 连接并调用工具。
+
+## 测试运行方式与覆盖范围
+- 当前测试：`server/tests/test_forecast_output.py`
+- 运行方式：
+```bash
+pytest -q
+```
+- 计划补充：预测接口 e2e 测试
+
+## 如何扩展并接入其他项目
+- 新模型：在 `server/app/services/` 中新增预测逻辑并注册路由
+- 新接口：在 `server/app/api/routes/` 添加对应 API
+- 新前端页面：在 `frontend/src/components/` / `frontend/src/App.tsx` 扩展 UI
+- MCP 集成：在 `server/app/mcp/handlers/tools.py` 注册新工具，在 `prompt_templates/` 补充提示词说明文档

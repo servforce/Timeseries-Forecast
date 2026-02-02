@@ -1,7 +1,7 @@
 
 services:
   chronos-service:
-    container_name: chronos_forecast
+    container_name: timeseries_forecast
     build:
       context: .              
       dockerfile: server/Dockerfile
@@ -38,7 +38,7 @@ services:
     #           capabilities: [gpu]
 
   frontend:
-    container_name: chronos_forecast_frontend
+    container_name: timeseries_forecast_frontend
     build:
       context: ./frontend
       dockerfile: Dockerfile
@@ -47,5 +47,5 @@ services:
     ports:
       - "5173:80"
     depends_on:
-      - chronos-service
+      - timeseries_forecast
     restart: unless-stopped
