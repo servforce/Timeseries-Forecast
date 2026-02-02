@@ -35,7 +35,7 @@
 
 ## 协变量开关（With Covariates）
 - 关闭时：即使输入有协变量字段，也会被忽略
-- 开启时：必须提供 `future_cov`，且长度 = `prediction_length`
+- 开启时：必须提供 `covariates`，且长度 = `prediction_length`
 
 ## 一键启动（推荐两种方式）
 ### 方式 A：脚本（本机安装了 Node + Python）

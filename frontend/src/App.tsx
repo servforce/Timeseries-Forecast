@@ -154,7 +154,7 @@ export default function App() {
                       <div>
                         <div>series: {summary.seriesCount}</div>
                         <div>history_rows: {summary.historyRows}</div>
-                        <div>has_future_cov: {String(summary.hasFutureCov)}</div>
+                        <div>has_covariates: {String(summary.hasCovariates)}</div>
                         <div>known_covariates: {summary.knownCovariatesCount}</div>
                         <div>
                           series_len(min/max): {summary.minSeriesLength}/{summary.maxSeriesLength}
@@ -233,7 +233,7 @@ export default function App() {
           type="info"
           showIcon
           message="建议"
-          description="将 JSON 放到 ```json 代码块里上传，避免直接粘贴大 JSON 导致网页卡顿。"
+          description="将 数据JSON格式化后放到markdown文档的 ```json 代码块里上传，详见下面示例"
           style={{ marginBottom: 12 }}
         />
         <pre style={{ whiteSpace: "pre-wrap", background: "#f6f6f6", padding: 12 }}>

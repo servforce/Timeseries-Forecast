@@ -14,10 +14,11 @@
 
 ## 输入要求（与 zeroshot 相同）
 - 输入是 Markdown 文本，必须包含 ```json 代码块
-- JSON 必须包含 `history_data`，可选包含 `future_cov` / `known_covariates_names` / `freq`
+- JSON 必须包含 `history_data`，可选包含 `covariates` / `known_covariates_names` / `freq`
 - 如需协变量预测（`with_cov=true`）：
-  - 必须提供 `future_cov`
-  - `future_cov` 中每个 `item_id` 的行数必须等于 `prediction_length`
+  - 必须提供 `covariates`
+  - 可选提供 `category_cov_name`（分类协变量列名；未列出者按数值协变量处理）
+  - `covariates` 中每个 `item_id` 的行数必须等于 `prediction_length`
 - 如果 `with_cov=false`，应忽略输入中的协变量字段
 
 ## 重要限制（避免服务资源耗尽）
@@ -38,9 +39,9 @@
 1) 缺少 `history_data`
    - 表现：解析失败或提示字段缺失
    - 纠错：补充 `history_data` 数组及必要字段
-2) `with_cov=true` 但缺少 `future_cov`
+2) `with_cov=true` 但缺少 `covariates`
    - 表现：提示未来协变量不匹配
-   - 纠错：补充 `future_cov`，并确保每个 `item_id` 行数 = `prediction_length`
+   - 纠错：补充 `covariates`，并确保每个 `item_id` 行数 = `prediction_length`
 3) `finetune_num_steps` 过大
    - 表现：提示超过服务限制
    - 纠错：降低步数（建议 100~500 起步）
@@ -81,9 +82,10 @@
 - `freq` 是否提供或可推断（不确定时要求用户补充）
 - `prediction_length` 是否为正整数
 - `with_cov=true` 时：
-  - `future_cov` 是否存在且为数组
-  - `known_covariates_names` 是否存在或可从 `future_cov` 推断
-  - `future_cov` 每个 `item_id` 行数是否等于 `prediction_length`
+  - `covariates` 是否存在且为数组
+  - `known_covariates_names` 是否存在或可从 `covariates` 推断
+  - `category_cov_name` 若存在，是否仅包含协变量列名
+  - `covariates` 每个 `item_id` 行数是否等于 `prediction_length`
 - `finetune_num_steps` 是否在允许范围内
 
 ## 示例输入输出

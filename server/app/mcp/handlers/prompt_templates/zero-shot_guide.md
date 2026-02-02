@@ -18,9 +18,10 @@
   - `history_data`: 数组，每条至少 `timestamp`, `item_id`（或 `id`）, `target`
   - 推荐提供 `freq`（如 `D/H/W/M`），否则服务端可能无法推断
 - 如需协变量预测（`with_cov=true`）：
-  - 必须提供 `future_cov`（未来已知协变量）
+  - 必须提供 `covariates`（未来已知协变量）
   - 推荐提供 `known_covariates_names`（未来已知协变量列名）
-  - `future_cov` 中每个 `item_id` 的行数必须等于 `prediction_length`
+  - 可选提供 `category_cov_name`（分类协变量列名；未列出者按数值协变量处理）
+  - `covariates` 中每个 `item_id` 的行数必须等于 `prediction_length`
 - 如果 `with_cov=false`，应忽略输入中的协变量字段
 
 ## 输出与解释规则
@@ -39,9 +40,9 @@
 2) `freq` 缺失且无法推断
    - 表现：提示“无法推断时间频率”
    - 纠错：在 JSON 中补充 `freq`（如 `D/H/W/M`）
-3) `with_cov=true` 但缺少 `future_cov`
-   - 表现：提示缺少 future_cov 或行数不匹配
-   - 纠错：补充 `future_cov`，并确保每个 `item_id` 行数 = `prediction_length`
+3) `with_cov=true` 但缺少 `covariates`
+   - 表现：提示缺少 covariates 或行数不匹配
+   - 纠错：补充 `covariates`，并确保每个 `item_id` 行数 = `prediction_length`
 4) 指标缺失或为 0
    - 表现：IC/IR = 0 或缺失
    - 纠错：检查历史长度是否至少为 `2 * prediction_length`；查看 `warnings` 中原因
@@ -79,9 +80,10 @@
 - `freq` 是否提供或可推断（不确定时要求用户补充）
 - `prediction_length` 是否为正整数
 - `with_cov=true` 时：
-  - `future_cov` 是否存在且为数组
-  - `known_covariates_names` 是否存在或可从 `future_cov` 推断
-  - `future_cov` 每个 `item_id` 行数是否等于 `prediction_length`
+  - `covariates` 是否存在且为数组
+  - `known_covariates_names` 是否存在或可从 `covariates` 推断
+  - `category_cov_name` 若存在，是否仅包含协变量列名
+  - `covariates` 每个 `item_id` 行数是否等于 `prediction_length`
 
 ## 示例输入输出
 输入（Markdown 中的 JSON）：

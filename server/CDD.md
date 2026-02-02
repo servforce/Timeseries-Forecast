@@ -151,7 +151,7 @@ forecast_server/
 > 注意：接口实际通过上传 Markdown 文件输入；Pydantic 用于**解析后 JSON 的校验**与**响应结构固定化**。
 
 **`zero-shot_models.py`**（建议命名：`zero_shot_models.py`，建议包含）
-- `ZeroShotForecastRequestParsed`：从 Markdown JSON 解析后的结构（`history_data / future_cov / prediction_length / quantiles / known_covariates_names / freq`）
+- `ZeroShotForecastRequestParsed`：从 Markdown JSON 解析后的结构（`history_data / covariates / prediction_length / quantiles / known_covariates_names / freq`）
 - `ForecastResponse`：统一预测响应（预测结果、分位数、元信息）
 
 **`finetune_models.py`**（建议包含）
@@ -163,11 +163,11 @@ forecast_server/
 - 从 Markdown 中提取 JSON（推荐规则：提取第一个 ```json 代码块；或约定 `<!-- chronos-input -->` 区块）
 - 将 `history_data` 转为 `TimeSeriesDataFrame`（至少包含：`item_id`、`timestamp`、`target`）
 - 协变量处理：
-  - `known_covariates_names`：显式从输入提供（或由 `future_cov` 的字段自动推断）
+  - `known_covariates_names`：显式从输入提供（或由 `covariates` 的字段自动推断）
   - 历史中除基础列外的字段：
     - 若在 `known_covariates_names` 中，则作为 known covariates 的历史部分
     - 否则作为 past covariates
-  - `future_cov` 必须覆盖 `known_covariates_names` 且每个 `item_id` 的长度等于 `prediction_length`
+  - `covariates` 必须覆盖 `known_covariates_names` 且每个 `item_id` 的长度等于 `prediction_length`
 - 输入限制（关键，防止 OOM/卡死）：
   - Markdown 文件大小（例如 `MAX_UPLOAD_MB`）
   - 最大序列数（例如 `MAX_SERIES`）
@@ -203,7 +203,7 @@ Markdown 中包含一个 `json` 代码块，结构如下（字段名以 `item_id
     {"timestamp": "2022-09-24", "item_id": "item_1", "target": 10.0, "price": 1.20, "promo_flag": 0, "weekday": 6},
     {"timestamp": "2022-09-25", "item_id": "item_1", "target": 11.0, "price": 1.22, "promo_flag": 0, "weekday": 0}
   ],
-  "future_cov": [
+  "covariates": [
     {"timestamp": "2022-10-01", "item_id": "item_1", "price": 1.36, "promo_flag": 0, "weekday": 6},
     {"timestamp": "2022-10-02", "item_id": "item_1", "price": 1.37, "promo_flag": 0, "weekday": 0}
   ]
@@ -212,14 +212,14 @@ Markdown 中包含一个 `json` 代码块，结构如下（字段名以 `item_id
 
 ### 3.3 字段与限制（服务端强校验）
 - `history_data` 必填：每条至少包含 `timestamp、item_id、target`
-- `future_cov`：
+- `covariates`：
   - 当 `known_covariates_names` 非空或 `with_cov=true` 时必填
   - 每个 `item_id` 的未来行数必须等于 `prediction_length`
 - `freq`：
   - 推荐必填（如 `D/H/W/M`），减少推断错误
 - `known_covariates_names`：
   - 推荐必填：避免“哪些是未来已知协变量”歧义
-  - 必须在 `history_data` 与 `future_cov` 中同时存在
+  - 必须在 `history_data` 与 `covariates` 中同时存在
 - 数值类型：
   - `target` 与协变量必须为数值（float/int），缺失值允许但需明确策略（如前端填充/服务端丢弃/报错）
 
@@ -299,7 +299,7 @@ pred = predictor.predict(ag_train, known_covariates=known_covs_future)
         * `Prediction Length` (步长): 数字输入框，默认 **28**，必填。
         * `Quantiles` (分位数): 多选标签或输入框，默认 `0.1, 0.5, 0.9`。
         * `Device`: 下拉选择 `CUDA` / `CPU`，默认 `CUDA`。
-        * `With Covariates`: 开关（Boolean），默认关闭。开启后提示用户“确保 Markdown 中包含 future_cov”。
+        * `With Covariates`: 开关（Boolean），默认关闭。开启后提示用户“确保 Markdown 中包含 covariates”。
         * **Mode 切换**：
             * **Zero-shot**: 默认模式，仅展示基础参数。
             * **Finetune**: 选中后展开高级参数：
@@ -359,7 +359,7 @@ pred = predictor.predict(ag_train, known_covariates=known_covs_future)
 
 ### 6.5 文件上传与性能策略（避免“粘贴 JSON 卡顿”）
 - 禁止在页面中直接编辑超大 JSON（默认只展示“摘要”）：
-  - 展示解析到的 `item_id` 数量、每条序列长度、是否检测到 `future_cov`
+  - 展示解析到的 `item_id` 数量、每条序列长度、是否检测到 `covariates`
   - 可选提供“预览前 N 行”
 - 上传前端限制（与后端保持一致）：
   - 文件大小（例如 10MB）
@@ -371,7 +371,7 @@ pred = predictor.predict(ag_train, known_covariates=known_covs_future)
 ### 6.6 错误提示规范（建议按错误码映射）
 - `DATA_FORMAT_ERROR`：提示“Markdown 中 JSON 无法解析，请检查 ```json 代码块”
 - `DATA_MISSING_COLUMNS`：提示“缺少必要字段：timestamp/item_id/target …”
-- `FUTURE_COV_MISMATCH`：提示“future_cov 每个 item_id 行数需等于 prediction_length”
+- `FUTURE_COV_MISMATCH`：提示“covariates 每个 item_id 行数需等于 prediction_length”
 - `MODEL_NOT_READY`：提示“服务缺少依赖或模型未配置（CHRONOS_MODEL_PATH）”
 
 ### 6.7 技术栈建议（前端）

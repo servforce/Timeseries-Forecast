@@ -20,7 +20,7 @@ async def zeroshot_forecast(
     quantiles: List[float] = Query(default=[0.1, 0.5, 0.9], description="输出分位数"),
     metrics: List[str] = Query(default=["WQL", "WAPE"], description="评估指标（可选：WQL,WAPE,IC,IR）"),
     freq: Optional[str] = Query(default=None, description="时间频率（如 D/H/W/M；不填则尝试推断）"),
-    with_cov: bool = Query(default=False, description="是否使用协变量（future_cov + known_covariates_names）"),
+    with_cov: bool = Query(default=False, description="是否使用协变量（covariates + known_covariates_names）"),
     context_length: int = Query(default=512, gt=0, description="上下文长度（默认 512，会自动按最短序列长度截断）"),
 ) -> Dict[str, Any]:
     if not file.filename.lower().endswith(".md"):

@@ -4,13 +4,13 @@ export const sampleMarkdown = `# Chronos Forecast Input
 
 \`\`\`json
 {
-  "freq": "D",
   "known_covariates_names": ["price", "promo_flag", "weekday"],
+  "category_cov_name": ["promo_flag", "weekday"],
   "history_data": [
     {"timestamp": "2022-09-24", "item_id": "item_1", "target": 10.0, "price": 1.20, "promo_flag": 0, "weekday": 6},
     {"timestamp": "2022-09-25", "item_id": "item_1", "target": 11.0, "price": 1.22, "promo_flag": 0, "weekday": 0}
   ],
-  "future_cov": [
+  "covariates": [
     {"timestamp": "2022-10-01", "item_id": "item_1", "price": 1.36, "promo_flag": 0, "weekday": 6},
     {"timestamp": "2022-10-02", "item_id": "item_1", "price": 1.37, "promo_flag": 0, "weekday": 0}
   ],

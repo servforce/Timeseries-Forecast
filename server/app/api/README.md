@@ -30,11 +30,12 @@ Markdown 中包含一个 `json` 代码块，结构示例：
 {
   "freq": "D",
   "known_covariates_names": ["price", "promo_flag", "weekday"],
+  "category_cov_name": ["promo_flag", "weekday"],
   "history_data": [
     {"timestamp": "2022-09-24", "item_id": "item_1", "target": 10.0, "price": 1.20, "promo_flag": 0, "weekday": 6},
     {"timestamp": "2022-09-25", "item_id": "item_1", "target": 11.0, "price": 1.22, "promo_flag": 0, "weekday": 0}
   ],
-  "future_cov": [
+  "covariates": [
     {"timestamp": "2022-10-01", "item_id": "item_1", "price": 1.36, "promo_flag": 0, "weekday": 6},
     {"timestamp": "2022-10-02", "item_id": "item_1", "price": 1.37, "promo_flag": 0, "weekday": 0}
   ]
@@ -45,9 +46,10 @@ Markdown 中包含一个 `json` 代码块，结构示例：
 - `history_data`：必填，每条至少包含 `timestamp、item_id(或id)、target`
 - `freq`：推荐必填（减少推断失败）
 - `with_cov=true` 时：
-  - 必须提供 `future_cov`
+  - 必须提供 `covariates`
   - 推荐提供 `known_covariates_names`
-  - `future_cov` 中每个 `item_id` 的行数必须等于 `prediction_length`
+  - 可选提供 `category_cov_name`（分类协变量列名）
+  - `covariates` 中每个 `item_id` 的行数必须等于 `prediction_length`
 
 指标说明：
 - WQL/WAPE：由 AutoGluon evaluate 输出

@@ -55,11 +55,12 @@ def register_resources(mcp) -> None:
                 "{\n"
                 "  \"freq\": \"D\",\n"
                 "  \"known_covariates_names\": [\"price\", \"promo_flag\", \"weekday\"],\n"
+                "  \"category_cov_name\": [\"promo_flag\", \"weekday\"],\n"
                 "  \"history_data\": [\n"
                 "    {\"timestamp\": \"2022-09-24\", \"item_id\": \"item_1\", \"target\": 10.0, \"price\": 1.20, \"promo_flag\": 0, \"weekday\": 6},\n"
                 "    {\"timestamp\": \"2022-09-25\", \"item_id\": \"item_1\", \"target\": 11.0, \"price\": 1.22, \"promo_flag\": 0, \"weekday\": 0}\n"
                 "  ],\n"
-                "  \"future_cov\": [\n"
+                "  \"covariates\": [\n"
                 "    {\"timestamp\": \"2022-10-01\", \"item_id\": \"item_1\", \"price\": 1.36, \"promo_flag\": 0, \"weekday\": 6},\n"
                 "    {\"timestamp\": \"2022-10-02\", \"item_id\": \"item_1\", \"price\": 1.37, \"promo_flag\": 0, \"weekday\": 0}\n"
                 "  ]\n"
@@ -75,7 +76,7 @@ def register_resources(mcp) -> None:
         """
         return {
             "DATA_FORMAT_ERROR": "Markdown 中 JSON 不可解析：请使用 ```json 代码块包裹。",
-            "DATA_MISSING_COLUMNS": "缺少必要字段：history_data 至少要有 timestamp/item_id/target；future_cov 至少要有 timestamp/item_id。",
-            "FUTURE_COV_MISMATCH": "future_cov 每个 item_id 的行数必须等于 prediction_length。",
+            "DATA_MISSING_COLUMNS": "缺少必要字段：history_data 至少要有 timestamp/item_id/target；covariates 至少要有 timestamp/item_id。",
+            "FUTURE_COV_MISMATCH": "covariates 每个 item_id 的行数必须等于 prediction_length。",
             "MODEL_NOT_READY": "AutoGluon 未安装或模型不可用：请确认已安装依赖并配置 CHRONOS_MODEL_PATH。",
         }

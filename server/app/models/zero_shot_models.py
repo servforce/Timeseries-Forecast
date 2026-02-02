@@ -13,7 +13,7 @@ class HistoryItem(BaseModel):
         extra = "allow"
 
 
-class FutureCovItem(BaseModel):
+class CovariateItem(BaseModel):
     timestamp: datetime = Field(..., description="未来时间步时间戳")
     item_id: str = Field(..., description="序列 ID（建议字段名 item_id；兼容 id）")
 
@@ -31,8 +31,12 @@ class MarkdownPayload(BaseModel):
         default=None,
         description="未来已知协变量列名（推荐必填）",
     )
+    category_cov_name: Optional[List[str]] = Field(
+        default=None,
+        description="分类协变量列名（可选，列入该列表的协变量将按分类类型处理）",
+    )
     history_data: List[HistoryItem] = Field(..., description="历史数据列表")
-    future_cov: Optional[List[FutureCovItem]] = Field(
+    covariates: Optional[List[CovariateItem]] = Field(
         default=None,
         description="未来已知协变量列表（with_cov=true 时必填）",
     )

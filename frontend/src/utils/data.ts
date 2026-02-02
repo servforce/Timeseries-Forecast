@@ -3,7 +3,7 @@ import { extractJsonFromMarkdown } from "./markdown";
 export type PayloadSummary = {
   seriesCount: number;
   historyRows: number;
-  hasFutureCov: boolean;
+  hasCovariates: boolean;
   knownCovariatesCount: number;
   minSeriesLength: number;
   maxSeriesLength: number;
@@ -24,14 +24,14 @@ export function tryParseMarkdownPayloadSummary(markdownText: string): PayloadSum
       }
     }
     const known = Array.isArray(payload?.known_covariates_names) ? payload.known_covariates_names : [];
-    const futureCov = Array.isArray(payload?.future_cov) ? payload.future_cov : [];
+    const covariates = Array.isArray(payload?.covariates) ? payload.covariates : [];
     const lens = Object.values(counts);
     const minSeriesLength = lens.length ? Math.min(...lens) : 0;
     const maxSeriesLength = lens.length ? Math.max(...lens) : 0;
     return {
       seriesCount: ids.size,
       historyRows: history.length,
-      hasFutureCov: futureCov.length > 0,
+      hasCovariates: covariates.length > 0,
       knownCovariatesCount: known.length,
       minSeriesLength,
       maxSeriesLength,

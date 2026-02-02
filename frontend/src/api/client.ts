@@ -29,7 +29,7 @@ function errorToMessage(e: any): string {
     const hints: Record<string, string> = {
       DATA_FORMAT_ERROR: "请确认 Markdown 中包含 ```json 代码块，且 JSON 可解析。",
       DATA_MISSING_COLUMNS: "请确认 history_data 至少包含 timestamp/item_id/target。",
-      FUTURE_COV_MISMATCH: "请确认 future_cov 每个 item_id 的行数等于 prediction_length。",
+      FUTURE_COV_MISMATCH: "请确认 covariates 每个 item_id 的行数等于 prediction_length。",
       VALIDATION_ERROR: "请检查参数范围（prediction_length/quantiles 等）。",
       MODEL_NOT_READY: "服务依赖或模型未就绪：检查后端依赖与 CHRONOS_MODEL_PATH。",
       MODEL_LOAD_FAILED: "模型加载失败：检查模型目录是否包含 config.json/model.safetensors。",

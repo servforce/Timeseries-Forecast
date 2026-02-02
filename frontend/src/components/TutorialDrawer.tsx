@@ -29,7 +29,13 @@ export default function TutorialDrawer(props: { open: boolean; onClose: () => vo
           可以按需上传协变量，并需要传入freq（时间间隔，如日频数据用D，时频数据用H）。详细格式参见输入样例。
         </Paragraph>
         <Paragraph>
-          协变量支持：输入数据传入 <Text code>future_cov</Text> 列作为协变量传入。传入 <Text code>known_covariates_names</Text> 定义未来已知协变量（需要提供未来预测步长天数的协变量数据），其余协变量传入将被作为历史协变量使用。
+          协变量支持：输入数据传入 <Text code>covariates</Text> 列作为未来协变量传入。传入 <Text code>known_covariates_names</Text>{" "}
+          定义未来已知协变量（需要提供未来预测步长天数的协变量数据），其余协变量将被作为历史协变量使用。
+        </Paragraph>
+        <Paragraph>
+          分类协变量支持：传入 <Text code>category_cov_name</Text> 指定分类协变量列名，例如是否促销（0/1）、星期几等可作为分类协变量；
+          未在 <Text code>category_cov_name</Text> 中的协变量默认按数值型处理，例如物价、气温等连续值。
+          注：合理传入协变量类型，有助于提升模型效果。
         </Paragraph>
         <Divider />
 
@@ -47,8 +53,11 @@ export default function TutorialDrawer(props: { open: boolean; onClose: () => vo
           <Text strong>Context Length</Text>：模型预测的可学习上下文长度（默认 512，最大支持8192）。模型根据上下文长度，学习context_length长度的历史序列规律。用户根据序列覆盖长度及频率调整。
         </Paragraph>
         <Paragraph>
-          <Text strong>With Covariates</Text>：开启后需要在 Markdown JSON 中提供 <Text code>future_cov</Text> 与{" "}.提供协变量长度需要包含未来预测步长区间的数据。
-          根据提供的<Text code>known_covariates_names</Text>列，作为未来已知协变量，其余未在<Text code>known_covariates_names</Text>中的协变量将被作为仅历史协变量。<Text strong>With Covariates</Text>关闭后即使提供协变量模型也会进行单变量预测。
+          <Text strong>With Covariates</Text>：开启后需要在 Markdown JSON 中提供 <Text code>covariates</Text>{" "}
+          与 <Text code>known_covariates_names</Text>。提供协变量长度需要包含未来预测步长区间的数据。根据提供的{" "}
+          <Text code>known_covariates_names</Text> 列作为未来已知协变量，其余未在{" "}
+          <Text code>known_covariates_names</Text> 中的协变量将被作为仅历史协变量。<Text strong>With Covariates</Text>{" "}
+          关闭后即使提供协变量模型也会进行单变量预测。
         </Paragraph>
         <Paragraph>
           <Text strong>Finetune 参数</Text>：Steps/LR/BatchSize 一些微调的参数，控制微调性能，微调建议序列数大于100条，且历史长度大于512。

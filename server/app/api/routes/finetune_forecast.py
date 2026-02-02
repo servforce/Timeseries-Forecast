@@ -20,7 +20,7 @@ async def finetune_forecast(
     quantiles: List[float] = Query(default=[0.1, 0.5, 0.9], description="输出分位数"),
     metrics: List[str] = Query(default=["WQL", "WAPE"], description="评估指标（可选：WQL,WAPE,IC,IR）"),
     freq: Optional[str] = Query(default=None, description="时间频率（如 D/H/W/M；不填则尝试推断）"),
-    with_cov: bool = Query(default=False, description="是否使用协变量（future_cov + known_covariates_names）"),
+    with_cov: bool = Query(default=False, description="是否使用协变量（covariates + known_covariates_names）"),
     finetune_num_steps: int = Query(default=1000, gt=0, description="微调步数"),
     finetune_learning_rate: float = Query(default=1e-4, gt=0, description="微调学习率"),
     finetune_batch_size: int = Query(default=32, gt=0, description="微调 batch size"),

@@ -14,6 +14,14 @@
     "StoreType",
     "Assortment"
   ],
+  "category_cov_name": [
+    "Promo",
+    "DayOfWeek",
+    "StateHoliday",
+    "SchoolHoliday",
+    "StoreType",
+    "Assortment"
+  ],
   "history_data": [
     {
       "timestamp": "2013-01-01",
@@ -50286,7 +50294,7 @@
       "Assortment": 1.0
     }
   ],
-  "future_cov": [
+  "covariates": [
     {
       "timestamp": "2015-07-04",
       "item_id": "1",

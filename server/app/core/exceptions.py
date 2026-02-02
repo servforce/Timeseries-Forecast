@@ -42,7 +42,7 @@ class ErrorCode(str, Enum):
     DATA_EMPTY = "DATA_EMPTY"                    # history_data 为空
     DATA_FORMAT_ERROR = "DATA_FORMAT_ERROR"      # 数据格式错误（类型/字段映射有问题）
     DATA_MISSING_COLUMNS = "DATA_MISSING_COLUMNS"  # 缺少必须列，如 timestamp / id / target
-    FUTURE_COV_MISMATCH = "FUTURE_COV_MISMATCH"  # future_cov 与 prediction_length 对不齐
+    FUTURE_COV_MISMATCH = "FUTURE_COV_MISMATCH"  # covariates 与 prediction_length 对不齐
 
     # ---------- 模型层 ----------
     MODEL_NOT_READY = "MODEL_NOT_READY"          # 模型尚未加载或不可用

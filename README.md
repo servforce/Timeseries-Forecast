@@ -58,7 +58,7 @@ docker compose up -d
 - 输入为 Markdown，必须包含 ```json 代码块
 - 必填字段：`history_data`（含 `timestamp/item_id(or id)/target`）
 - 推荐提供 `freq`（如 D/H/W/M）
-- 若开启协变量：必须提供 `future_cov`，且长度 = `prediction_length`
+- 若开启协变量：必须提供 `covariates`，且长度 = `prediction_length`
 
 ## 指标说明（WQL/WAPE/IC/IR）
 - WQL/WAPE：由 AutoGluon evaluate 输出

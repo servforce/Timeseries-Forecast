@@ -19,6 +19,7 @@ class ParsedMarkdownInput:
     test_df: Optional[pd.DataFrame]
     freq: str
     known_covariates_names: List[str]
+    category_covariates_names: List[str]
 
 
 def extract_json_from_markdown(markdown_text: str) -> Dict[str, Any]:
@@ -112,7 +113,7 @@ def parse_markdown_payload(
 
     Returns DataFrames with normalized columns:
     - history_df: timestamp, item_id, target, + covariates (optional)
-    - future_cov_df: timestamp, item_id, + known covariates (optional)
+    - covariates_df: timestamp, item_id, + known covariates (optional)
     """
     if prediction_length <= 0:
         raise DataException(
@@ -169,6 +170,7 @@ def parse_markdown_payload(
     future_cov_df: Optional[pd.DataFrame] = None
     known_covariates_names: List[str] = []
     test_df: Optional[pd.DataFrame] = None
+    category_covariates_names: List[str] = []
 
     # Optional test_data: if provided, can be concatenated to history_data for evaluation.
     # This is NOT required. If omitted, metrics can still be computed on history_data by holding out
@@ -190,21 +192,27 @@ def parse_markdown_payload(
                 details={"group_counts": group_counts.to_dict(), "prediction_length": prediction_length},
             )
 
+    raw_category_cov = payload.get("category_cov_name")
+    if isinstance(raw_category_cov, list):
+        category_covariates_names = [str(x).strip() for x in raw_category_cov if str(x).strip()]
+    elif isinstance(raw_category_cov, str):
+        category_covariates_names = [x.strip() for x in raw_category_cov.split(",") if x.strip()]
+
     if with_cov:
-        # known cov names: payload or infer from future_cov keys
+        # known cov names: payload or infer from covariates keys
         if isinstance(payload.get("known_covariates_names"), list):
             known_covariates_names = [str(x) for x in payload["known_covariates_names"]]
 
-        future_cov = payload.get("future_cov")
-        if not isinstance(future_cov, list) or not future_cov:
+        covariates = payload.get("covariates")
+        if not isinstance(covariates, list) or not covariates:
             raise DataException(
                 error_code=ErrorCode.DATA_FORMAT_ERROR,
-                message="with_cov=true 时必须提供 future_cov（未来已知协变量）",
+                message="with_cov=true 时必须提供 covariates（未来已知协变量）",
             )
-        future_cov = _normalize_id_key(future_cov)
-        future_cov_df = pd.DataFrame(future_cov)
-        _require_columns(future_cov_df, ["timestamp", "item_id"], where="future_cov")
-        future_cov_df = _parse_timestamp_column(future_cov_df, where="future_cov")
+        covariates = _normalize_id_key(covariates)
+        future_cov_df = pd.DataFrame(covariates)
+        _require_columns(future_cov_df, ["timestamp", "item_id"], where="covariates")
+        future_cov_df = _parse_timestamp_column(future_cov_df, where="covariates")
         future_cov_df = future_cov_df.sort_values(["item_id", "timestamp"]).reset_index(drop=True)
 
         if not known_covariates_names:
@@ -214,7 +222,7 @@ def parse_markdown_payload(
         if not known_covariates_names:
             raise DataException(
                 error_code=ErrorCode.VALIDATION_ERROR,
-                message="无法确定 known_covariates_names（请在输入提供 known_covariates_names 或在 future_cov 中提供协变量列）",
+                message="无法确定 known_covariates_names（请在输入提供 known_covariates_names 或在 covariates 中提供协变量列）",
             )
 
         # Validate: known covs exist in history and future
@@ -228,9 +236,32 @@ def parse_markdown_payload(
             if col not in future_cov_df.columns:
                 raise DataException(
                     error_code=ErrorCode.DATA_MISSING_COLUMNS,
-                    message="future_cov 缺少已知协变量列",
-                    details={"missing_column": col, "where": "future_cov"},
+                    message="covariates 缺少已知协变量列",
+                    details={"missing_column": col, "where": "covariates"},
                 )
+
+        covariate_cols = [c for c in history_df.columns if c not in {"timestamp", "item_id", "target"}]
+        missing_categories = [c for c in category_covariates_names if c not in covariate_cols]
+        if missing_categories:
+            raise DataException(
+                error_code=ErrorCode.DATA_MISSING_COLUMNS,
+                message="category_cov_name 包含不存在的协变量列",
+                details={"missing_columns": missing_categories, "where": "history_data"},
+            )
+
+        if covariate_cols:
+            for col in covariate_cols:
+                if col in category_covariates_names:
+                    history_df[col] = history_df[col].astype("category")
+                else:
+                    try:
+                        history_df[col] = pd.to_numeric(history_df[col], errors="raise").astype(float)
+                    except Exception as exc:
+                        raise DataException(
+                            error_code=ErrorCode.DATA_FORMAT_ERROR,
+                            message="协变量列必须为数值类型或放入 category_cov_name",
+                            details={"column": col, "where": "history_data", "reason": str(exc)},
+                        ) from exc
 
         # Validate future length per item_id == prediction_length
         group_counts = future_cov_df.groupby("item_id").size()
@@ -238,17 +269,30 @@ def parse_markdown_payload(
         if not mismatch.empty:
             raise DataException(
                 error_code=ErrorCode.FUTURE_COV_MISMATCH,
-                message="future_cov 每个 item_id 的行数必须等于 prediction_length",
+                message="covariates 每个 item_id 的行数必须等于 prediction_length",
                 details={"group_counts": group_counts.to_dict(), "prediction_length": prediction_length},
             )
 
         # Keep only known cov columns + id/timestamp for known cov df
         future_cov_df = future_cov_df[["item_id", "timestamp", *known_covariates_names]].copy()
+        for col in known_covariates_names:
+            if col in category_covariates_names:
+                future_cov_df[col] = future_cov_df[col].astype("category")
+            else:
+                try:
+                    future_cov_df[col] = pd.to_numeric(future_cov_df[col], errors="raise").astype(float)
+                except Exception as exc:
+                    raise DataException(
+                        error_code=ErrorCode.DATA_FORMAT_ERROR,
+                        message="协变量列必须为数值类型或放入 category_cov_name",
+                        details={"column": col, "where": "covariates", "reason": str(exc)},
+                    ) from exc
     else:
         # Explicitly ignore any covariate columns if with_cov is false.
         history_df = history_df[["timestamp", "item_id", "target"]].copy()
         future_cov_df = None
         known_covariates_names = []
+        category_covariates_names = []
 
     return ParsedMarkdownInput(
         history_df=history_df,
@@ -256,4 +300,5 @@ def parse_markdown_payload(
         test_df=test_df,
         freq=freq,
         known_covariates_names=known_covariates_names,
+        category_covariates_names=category_covariates_names,
     )

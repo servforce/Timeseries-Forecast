@@ -5,8 +5,16 @@
 
 ```json
     {
-  "freq": "D",
+ 
   "known_covariates_names": [
+    "Promo",
+    "DayOfWeek",
+    "StateHoliday",
+    "SchoolHoliday",
+    "StoreType",
+    "Assortment"
+  ],
+  "category_cov_name": [
     "Promo",
     "DayOfWeek",
     "StateHoliday",
@@ -50286,7 +50294,7 @@
       "Assortment": 1.0
     }
   ],
-  "future_cov": [
+  "covariates": [
     {
       "timestamp": "2015-07-04",
       "item_id": "1",
