@@ -45,7 +45,8 @@ export default function App() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<any | null>(null);
+  const [zeroResult, setZeroResult] = useState<any | null>(null);
+  const [finetuneResult, setFinetuneResult] = useState<any | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const [tutorialOpen, setTutorialOpen] = useState(false);
   const [lastModelId, setLastModelId] = useState<string | null>(null);
@@ -55,15 +56,25 @@ export default function App() {
     return tryParseMarkdownPayloadSummary(fileState.text);
   }, [fileState?.text]);
 
-  const view = useMemo(() => {
-    if (!fileState?.text || !result?.predictions) return null;
+  const zeroView = useMemo(() => {
+    if (!fileState?.text || !zeroResult?.predictions) return null;
     return buildSeriesView({
       markdownText: fileState.text,
-      predictions: result.predictions,
-      quantiles: result.quantiles ?? params.quantiles,
-      predictionLength: result.prediction_length ?? params.predictionLength,
+      predictions: zeroResult.predictions,
+      quantiles: zeroResult.quantiles ?? params.quantiles,
+      predictionLength: zeroResult.prediction_length ?? params.predictionLength,
     });
-  }, [fileState?.text, result, params.quantiles]);
+  }, [fileState?.text, zeroResult, params.quantiles]);
+
+  const finetuneView = useMemo(() => {
+    if (!fileState?.text || !finetuneResult?.predictions) return null;
+    return buildSeriesView({
+      markdownText: fileState.text,
+      predictions: finetuneResult.predictions,
+      quantiles: finetuneResult.quantiles ?? params.quantiles,
+      predictionLength: finetuneResult.prediction_length ?? params.predictionLength,
+    });
+  }, [fileState?.text, finetuneResult, params.quantiles]);
 
   const tabs: TabsProps["items"] = [
     { key: "zeroshot", label: "Zero-shot" },
@@ -72,7 +83,6 @@ export default function App() {
 
   async function onRun() {
     setError(null);
-    setResult(null);
 
     if (!fileState?.file) {
       setError("请先上传 Markdown 文件（.md），并确保包含 ```json 代码块。");
@@ -93,6 +103,7 @@ export default function App() {
       let resp: any;
       if (mode === "zeroshot") {
         resp = await forecastApi.zeroshot(fileState.file, apiParams);
+        setZeroResult(resp);
       } else {
         resp = await forecastApi.finetune(fileState.file, {
           ...apiParams,
@@ -103,9 +114,9 @@ export default function App() {
           saveModel: params.saveModel,
           modelId: params.modelId?.trim() ? params.modelId.trim() : undefined,
         });
+        setFinetuneResult(resp);
       }
 
-      setResult(resp);
       if (resp?.model_id) {
         setLastModelId(resp.model_id);
         message.success(`微调完成，model_id=${resp.model_id}`);
@@ -133,6 +144,20 @@ export default function App() {
         <Space>
           <Button className="ghost-button" onClick={() => setHelpOpen(true)}>输入模版</Button>
           <Button className="ghost-button" onClick={() => setTutorialOpen(true)}>使用教程</Button>
+          <Button
+            className="ghost-button"
+            onClick={() => {
+              setFileState(null);
+              setZeroResult(null);
+              setFinetuneResult(null);
+              setLastModelId(null);
+              setError(null);
+              setParams((prev) => ({ ...prev, modelId: undefined }));
+              message.success("已刷新，可重新上传并预测");
+            }}
+          >
+            刷新
+          </Button>
         </Space>
       </Header>
 
@@ -202,7 +227,7 @@ export default function App() {
 
           <Col xs={24} lg={16} style={{ height: "100%" }}>
             <Card className="panel panel-right" style={{ height: "100%" }} bodyStyle={{ height: "100%" }} styles={{ body: { height: "100%", padding: 20 } }}>
-              {!result && !loading && (
+              {!zeroView && !finetuneView && !loading && (
                 <Alert
                   type="info"
                   showIcon
@@ -211,49 +236,91 @@ export default function App() {
                 />
               )}
 
-              {view && (
-                <Space direction="vertical" style={{ width: "100%" }} size="large">
-                  {result?.model_id && (
-                    <Alert
-                      type="success"
-                      showIcon
-                      message="微调模型已保存"
-                      description={
-                        <Space direction="vertical" size="small" style={{ width: "100%" }}>
-                          <Text>
-                            model_id：<Text code copyable>{String(result.model_id)}</Text>
-                          </Text>
-                          <Button
-                            size="small"
-                            onClick={() => {
-                              setMode("finetune");
-                              setParams((prev) => ({ ...prev, modelId: String(result.model_id) }));
-                              message.success("已填入 model_id，可直接复用预测");
-                            }}
-                          >
-                            一键复用本次 model_id
-                          </Button>
-                          <Button
-                            size="small"
-                            onClick={() => {
-                              setParams((prev) => ({ ...prev, modelId: undefined }));
-                              message.success("已取消复用，可重新微调");
-                            }}
-                          >
-                            取消复用
-                          </Button>
-                        </Space>
-                      }
-                    />
+              <Space direction="vertical" style={{ width: "100%" }} size="large">
+                <Card
+                  size="small"
+                  title="Zero-shot 可视化"
+                  className="panel"
+                  bodyStyle={{ padding: 12 }}
+                >
+                  {zeroView ? (
+                    <Space direction="vertical" style={{ width: "100%" }} size="middle">
+                      <MetricsCard metrics={zeroResult?.metrics} />
+                      <ResultChart view={zeroView} />
+                      <ResultTable
+                        predictions={zeroResult?.predictions ?? []}
+                        quantiles={zeroResult?.quantiles ?? params.quantiles}
+                      />
+                    </Space>
+                  ) : (
+                    <Alert type="info" showIcon message="暂无 Zero-shot 结果" />
                   )}
-                  <MetricsCard metrics={result?.metrics} />
-                  <ResultChart view={view} />
-                  <ResultTable
-                    predictions={result?.predictions ?? []}
-                    quantiles={result?.quantiles ?? params.quantiles}
-                  />
-                </Space>
-              )}
+                </Card>
+
+                <Card
+                  size="small"
+                  title="Finetune 可视化"
+                  className="panel"
+                  bodyStyle={{ padding: 12 }}
+                >
+                  {finetuneView ? (
+                    <Space direction="vertical" style={{ width: "100%" }} size="middle">
+                      {finetuneResult?.model_id && (
+                        <Alert
+                          type="success"
+                          showIcon
+                          message="微调模型已保存"
+                          description={
+                            <Space direction="vertical" size="small" style={{ width: "100%" }}>
+                              <Text>
+                                model_id：<Text code copyable>{String(finetuneResult.model_id)}</Text>
+                              </Text>
+                              {finetuneResult?.model_saved_at && (
+                                <Text>
+                                  保存时间：<Text code>{String(finetuneResult.model_saved_at)}</Text>
+                                </Text>
+                              )}
+                              {typeof finetuneResult?.model_retention_days_left === "number" && (
+                                <Text>
+                                  剩余保留天数：
+                                  <Text code>{String(finetuneResult.model_retention_days_left)}</Text>
+                                </Text>
+                              )}
+                              <Button
+                                size="small"
+                                onClick={() => {
+                                  setMode("finetune");
+                                  setParams((prev) => ({ ...prev, modelId: String(finetuneResult.model_id) }));
+                                  message.success("已填入 model_id，可直接复用预测");
+                                }}
+                              >
+                                一键复用本次 model_id
+                              </Button>
+                              <Button
+                                size="small"
+                                onClick={() => {
+                                  setParams((prev) => ({ ...prev, modelId: undefined }));
+                                  message.success("已取消复用，可重新微调");
+                                }}
+                              >
+                                取消复用
+                              </Button>
+                            </Space>
+                          }
+                        />
+                      )}
+                      <MetricsCard metrics={finetuneResult?.metrics} />
+                      <ResultChart view={finetuneView} />
+                      <ResultTable
+                        predictions={finetuneResult?.predictions ?? []}
+                        quantiles={finetuneResult?.quantiles ?? params.quantiles}
+                      />
+                    </Space>
+                  ) : (
+                    <Alert type="info" showIcon message="暂无 Finetune 结果" />
+                  )}
+                </Card>
+              </Space>
             </Card>
           </Col>
         </Row>

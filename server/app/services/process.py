@@ -192,16 +192,27 @@ def parse_markdown_payload(
                 details={"group_counts": group_counts.to_dict(), "prediction_length": prediction_length},
             )
 
-    raw_category_cov = payload.get("category_cov_name")
-    if isinstance(raw_category_cov, list):
-        category_covariates_names = [str(x).strip() for x in raw_category_cov if str(x).strip()]
-    elif isinstance(raw_category_cov, str):
-        category_covariates_names = [x.strip() for x in raw_category_cov.split(",") if x.strip()]
+    def _read_name_list(keys: Sequence[str]) -> List[str]:
+        names: List[str] = []
+        for key in keys:
+            value = payload.get(key)
+            if isinstance(value, list):
+                names.extend([str(x).strip() for x in value if str(x).strip()])
+            elif isinstance(value, str):
+                names.extend([x.strip() for x in value.split(",") if x.strip()])
+        deduped: List[str] = []
+        seen = set()
+        for name in names:
+            if name not in seen:
+                seen.add(name)
+                deduped.append(name)
+        return deduped
+
+    category_covariates_names = _read_name_list(["category_cov_name", "category_name"])
 
     if with_cov:
         # known cov names: payload or infer from covariates keys
-        if isinstance(payload.get("known_covariates_names"), list):
-            known_covariates_names = [str(x) for x in payload["known_covariates_names"]]
+        known_covariates_names = _read_name_list(["known_covariates_names", "know_cov_name"])
 
         covariates = payload.get("covariates")
         if not isinstance(covariates, list) or not covariates:
@@ -249,19 +260,55 @@ def parse_markdown_payload(
                 details={"missing_columns": missing_categories, "where": "history_data"},
             )
 
-        if covariate_cols:
-            for col in covariate_cols:
-                if col in category_covariates_names:
-                    history_df[col] = history_df[col].astype("category")
+        def _encode_category_columns(
+            history: pd.DataFrame,
+            future: Optional[pd.DataFrame],
+            cols: Sequence[str],
+        ) -> Tuple[pd.DataFrame, Optional[pd.DataFrame]]:
+            for col in cols:
+                history_series = history[col]
+                future_series = future[col] if future is not None and col in future.columns else None
+                combined = pd.concat(
+                    [s for s in [history_series, future_series] if s is not None], ignore_index=True
+                )
+                non_null = combined[combined.notna()]
+                numeric = pd.to_numeric(non_null, errors="coerce")
+                is_numeric = numeric.notna().sum() == non_null.shape[0]
+
+                if is_numeric:
+                    cats = pd.Series(numeric.unique()).sort_values()
+                    cat_type = pd.CategoricalDtype(categories=cats, ordered=False)
+                    history_num = pd.to_numeric(history_series, errors="coerce")
+                    history[col] = history_num.astype(cat_type)
+                    if future is not None and col in future.columns:
+                        future_num = pd.to_numeric(future_series, errors="coerce")
+                        future[col] = future_num.astype(cat_type)
                 else:
-                    try:
-                        history_df[col] = pd.to_numeric(history_df[col], errors="raise").astype(float)
-                    except Exception as exc:
-                        raise DataException(
-                            error_code=ErrorCode.DATA_FORMAT_ERROR,
-                            message="协变量列必须为数值类型或放入 category_cov_name",
-                            details={"column": col, "where": "history_data", "reason": str(exc)},
-                        ) from exc
+                    cats = pd.Series(non_null.astype(str).unique())
+                    cat_type = pd.CategoricalDtype(categories=cats, ordered=False)
+                    history_codes = pd.Categorical(history_series.astype(str), dtype=cat_type).codes
+                    history_codes = pd.Series(history_codes).replace(-1, pd.NA)
+                    history[col] = history_codes.astype("category")
+                    if future is not None and col in future.columns:
+                        future_codes = pd.Categorical(future_series.astype(str), dtype=cat_type).codes
+                        future_codes = pd.Series(future_codes).replace(-1, pd.NA)
+                        future[col] = future_codes.astype("category")
+            return history, future
+
+        if covariate_cols:
+            history_df, future_cov_df = _encode_category_columns(
+                history_df, future_cov_df, category_covariates_names
+            )
+            numeric_covs = [c for c in covariate_cols if c not in category_covariates_names]
+            for col in numeric_covs:
+                try:
+                    history_df[col] = pd.to_numeric(history_df[col], errors="raise").astype(float)
+                except Exception as exc:
+                    raise DataException(
+                        error_code=ErrorCode.DATA_FORMAT_ERROR,
+                        message="协变量列必须为数值类型或放入 category_cov_name",
+                        details={"column": col, "where": "history_data", "reason": str(exc)},
+                    ) from exc
 
         # Validate future length per item_id == prediction_length
         group_counts = future_cov_df.groupby("item_id").size()
@@ -273,20 +320,39 @@ def parse_markdown_payload(
                 details={"group_counts": group_counts.to_dict(), "prediction_length": prediction_length},
             )
 
+        last_hist = history_df.groupby("item_id")["timestamp"].max()
+        future_groups = future_cov_df.groupby("item_id")["timestamp"]
+        invalid_items: Dict[str, List[str]] = {}
+        for item_id, last_ts in last_hist.items():
+            try:
+                future_ts = future_groups.get_group(item_id).sort_values()
+            except Exception:
+                invalid_items[str(item_id)] = ["missing_future_covariates"]
+                continue
+            expected = pd.date_range(start=last_ts, periods=prediction_length + 1, freq=freq)[1:]
+            if len(future_ts) != len(expected) or not future_ts.reset_index(drop=True).equals(
+                pd.Series(expected).reset_index(drop=True)
+            ):
+                invalid_items[str(item_id)] = ["future_covariates_not_cover_prediction_window"]
+        if invalid_items:
+            raise DataException(
+                error_code=ErrorCode.FUTURE_COV_MISMATCH,
+                message="covariates 未覆盖预测区间（需从最后历史时间开始连续覆盖 prediction_length）",
+                details={"items": invalid_items, "prediction_length": prediction_length, "freq": freq},
+            )
+
         # Keep only known cov columns + id/timestamp for known cov df
         future_cov_df = future_cov_df[["item_id", "timestamp", *known_covariates_names]].copy()
-        for col in known_covariates_names:
-            if col in category_covariates_names:
-                future_cov_df[col] = future_cov_df[col].astype("category")
-            else:
-                try:
-                    future_cov_df[col] = pd.to_numeric(future_cov_df[col], errors="raise").astype(float)
-                except Exception as exc:
-                    raise DataException(
-                        error_code=ErrorCode.DATA_FORMAT_ERROR,
-                        message="协变量列必须为数值类型或放入 category_cov_name",
-                        details={"column": col, "where": "covariates", "reason": str(exc)},
-                    ) from exc
+        numeric_known = [c for c in known_covariates_names if c not in category_covariates_names]
+        for col in numeric_known:
+            try:
+                future_cov_df[col] = pd.to_numeric(future_cov_df[col], errors="raise").astype(float)
+            except Exception as exc:
+                raise DataException(
+                    error_code=ErrorCode.DATA_FORMAT_ERROR,
+                    message="协变量列必须为数值类型或放入 category_cov_name",
+                    details={"column": col, "where": "covariates", "reason": str(exc)},
+                ) from exc
     else:
         # Explicitly ignore any covariate columns if with_cov is false.
         history_df = history_df[["timestamp", "item_id", "target"]].copy()

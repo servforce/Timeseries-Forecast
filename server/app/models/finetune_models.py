@@ -7,6 +7,8 @@ from app.models.zero_shot_models import ForecastResponse, MarkdownPayload
 
 class FineTuneResponse(ForecastResponse):
     model_id: Optional[str] = Field(default=None, description="微调模型 ID（可选）")
+    model_saved_at: Optional[str] = Field(default=None, description="微调模型保存时间（ISO）")
+    model_retention_days_left: Optional[int] = Field(default=None, description="微调模型剩余保留天数")
 
 
 class FineTuneRequestParsed(MarkdownPayload):

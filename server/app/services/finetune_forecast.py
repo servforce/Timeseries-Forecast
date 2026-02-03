@@ -1,6 +1,7 @@
 import logging
 import shutil
 import tempfile
+import time
 import uuid
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -29,6 +30,15 @@ from app.services.device import choose_device
 
 logger = logging.getLogger(__name__)
 _MIN_OBS_RE = re.compile(r">=\\s*(\\d+)\\s+observations", re.IGNORECASE)
+
+
+def _get_model_retention_info(model_dir: Path) -> tuple[str, int]:
+    retention_days = settings.FINETUNED_MODEL_RETENTION_DAYS
+    mtime = model_dir.stat().st_mtime
+    saved_at = pd.Timestamp.fromtimestamp(mtime).isoformat()
+    age_days = int((time.time() - mtime) // 86400)
+    days_left = max(0, int(retention_days) - age_days)
+    return saved_at, days_left
 
 
 def finetune_forecast_from_markdown_bytes(
@@ -109,6 +119,9 @@ def finetune_forecast_from_markdown_bytes(
     model_id_used: Optional[str] = None
     temp_dir_ctx: Optional[tempfile.TemporaryDirectory] = None
 
+    model_saved_at: Optional[str] = None
+    model_retention_days_left: Optional[int] = None
+
     if model_id:
         model_id_used = model_id
         model_dir = Path(settings.FINETUNED_MODELS_DIR) / model_id
@@ -137,6 +150,8 @@ def finetune_forecast_from_markdown_bytes(
 
         if hasattr(predictor, "quantile_levels"):
             predictor.quantile_levels = quantiles  # type: ignore[attr-defined]
+
+        model_saved_at, model_retention_days_left = _get_model_retention_info(model_dir)
     else:
         temp_dir_ctx = tempfile.TemporaryDirectory(prefix="ag-finetune-")
         predictor_path = temp_dir_ctx.name
@@ -445,6 +460,7 @@ def finetune_forecast_from_markdown_bytes(
                 if src_dir and src_dir.exists() and src_dir != out_dir:
                     for child in src_dir.iterdir():
                         shutil.move(str(child), str(out_dir / child.name))
+            model_saved_at, model_retention_days_left = _get_model_retention_info(out_dir)
         except Exception as exc:
             raise ModelException(
                 error_code=ErrorCode.MODEL_LOAD_FAILED,
@@ -463,6 +479,9 @@ def finetune_forecast_from_markdown_bytes(
     }
     if model_id_out is not None:
         result["model_id"] = model_id_out
+    if model_saved_at is not None:
+        result["model_saved_at"] = model_saved_at
+        result["model_retention_days_left"] = model_retention_days_left
     if temp_dir_ctx is not None:
         temp_dir_ctx.cleanup()
     return result

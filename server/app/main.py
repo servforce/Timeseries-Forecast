@@ -14,6 +14,7 @@ from app.core.config import settings
 from app.api.main import api_router
 from app.api.routes import health
 from app.services.model_cleanup import cleanup_finetuned_models
+from app.services.job_queue import job_queue
 
 
 
@@ -35,6 +36,10 @@ async def _cleanup_loop() -> None:
             logger.warning("后台清理任务执行失败: %s", exc)
         await asyncio.sleep(interval_seconds)
 
+
+async def _job_worker_loop() -> None:
+    await job_queue.worker()
+
 @asynccontextmanager
 async def lifespan(app:FastAPI):
     '''应用生命周期管理'''
@@ -45,8 +50,10 @@ async def lifespan(app:FastAPI):
     logger.info("="*40)
 
     cleanup_task: asyncio.Task | None = None
+    job_task: asyncio.Task | None = None
     if settings.FINETUNED_MODEL_RETENTION_DAYS > 0 and settings.FINETUNED_MODEL_CLEANUP_INTERVAL_HOURS > 0:
         cleanup_task = asyncio.create_task(_cleanup_loop())
+    job_task = asyncio.create_task(_job_worker_loop())
 
     if settings.ENABLE_MCP:
         from app.mcp.server import mcp
@@ -84,6 +91,12 @@ async def lifespan(app:FastAPI):
                     await cleanup_task
                 except asyncio.CancelledError:
                     pass
+            if job_task is not None:
+                job_task.cancel()
+                try:
+                    await job_task
+                except asyncio.CancelledError:
+                    pass
             logger.info("Application shutdown")
     else:
         logger.info("=" * 40)
@@ -109,6 +122,12 @@ async def lifespan(app:FastAPI):
             cleanup_task.cancel()
             try:
                 await cleanup_task
+            except asyncio.CancelledError:
+                pass
+        if job_task is not None:
+            job_task.cancel()
+            try:
+                await job_task
             except asyncio.CancelledError:
                 pass
         logger.info("Application shutdown")
